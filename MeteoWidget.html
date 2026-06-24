@@ -31,7 +31,7 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
 .temp{font-size:clamp(2.8rem,14vw,5rem);font-weight:800;line-height:1.0;white-space:nowrap}
 .temp .unit{font-size:.5em;font-weight:600;color:#9fb3c8}
 .sub{font-size:clamp(.9rem,3.8vw,1.25rem);color:#cdd9e6;line-height:1.3;font-weight:600}
-.loc{font-size:clamp(.78rem,3vw,.95rem);color:#7c93ad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.loc{font-size:clamp(.78rem,3vw,.95rem);color:#e0eefa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
 
 .lines{display:flex;flex-direction:column;gap:clamp(4px,1vh,8px);min-width:0;flex-shrink:0}
 .line{font-size:clamp(.84rem,3.5vw,1.1rem);color:#cdd9e6;line-height:1.3;
@@ -274,7 +274,7 @@ function tempCross(dayHrs,warm){
 }
 
 function nextRainEvent(hours){
-  const rateThr=(RAIN_MIN>=3)?RAIN_MIN:0.05;   // prag de intensitate orară care formează episodul
+  const rateThr=0.05;   // fix independent de RAIN_MIN — condiția de bază e doar totalul >10 l/mp
   const dk0=dkNow(),h0=hNow();
   const fut=hours.filter(h=>h.dk>dk0||(h.dk===dk0&&h.h>=h0));
   let i=0;
@@ -771,12 +771,18 @@ function loadSharedSettings(){
 
 let _lastHours=[];
 let _settingsLoaded=false;   // loadSharedSettings se apelează o singură dată la pornire
+let _resolvedElev=null;      // altitudinea efectivă returnată de API (m)
 
 async function loadWidget(){
-  // Pragurile se citesc la fiecare refresh (pot fi schimbate din MeteoDaneti),
-  // dar LAT/LON/TZ/LOC_NAME/locKind NU se suprascriu dacă utilizatorul a ales deja o locație în widget
-  if(!_settingsLoaded){ loadSharedSettings(); _settingsLoaded=true; }
-  else {
+  // La prima pornire: preia locația + pragurile din localStorage (setate de MeteoDaneti)
+  // La refresh-urile ulterioare: preia DOAR pragurile (nu locația — ar anula selecția din widget)
+  if(!_settingsLoaded){
+    loadSharedSettings();
+    _settingsLoaded=true;
+    // sincronizează butoanele cu locația preluată
+    document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+    const btn=el('btn-'+_locKind);if(btn)btn.classList.add('active');
+  } else {
     // la refresh ulterior: preia doar pragurile (nu locația — ar anula selecția din widget)
     try{
       const raw=localStorage.getItem(LS_KEY);
@@ -800,6 +806,9 @@ async function loadWidget(){
   }catch(e){ renderError(); scheduleRetry(); return; }
   const valid=results.filter(r=>r.ok&&r.hourly.length);
   if(!valid.length){ renderError(); scheduleRetry(); return; }
+  // altitudinea efectivă returnată de API (DEM Open-Meteo, în metri)
+  const elevResult=valid.find(r=>r.elevation!=null);
+  if(elevResult)_resolvedElev=Math.round(elevResult.elevation);
   const map=buildMap(valid);
   const hours=allHours(map);
   _lastHours=hours;
@@ -832,7 +841,19 @@ function render(hours){
   el('w-ico').textContent=cond.i;
   el('w-temp').innerHTML=(t!=null?t:'—')+'<span class="unit">°C</span>';
   el('w-sub').textContent=cond.t+(at!=null?' · resimțit '+at+'°':'')+(maxToday!=null?' · Max '+maxToday+'°':'');
-  el('w-loc').textContent='📍 '+LOC_NAME;
+
+  // Locație: doar primul segment (ex. "Craiova" din "Craiova, Dolj") + altitudine
+  const shortName=LOC_NAME.split(',')[0].trim();
+  const elevTxt=_resolvedElev!=null?' · '+_resolvedElev+' m':'';
+  // Indicator auto-învățare: verde dacă activ, galben dacă în colectare
+  const ls=typeof learnStats==='function'?learnStats():null;
+  const minSamples=typeof LEARN_MIN_SAMPLES==='number'?LEARN_MIN_SAMPLES:6;
+  let learnIco='';
+  if(ls){
+    if(ls.active>0) learnIco=` <span style="color:#6ee7b7;font-size:.8em" title="Auto-corecție activă (${ls.active} ore)">🧠✓</span>`;
+    else if(ls.total>0) learnIco=` <span style="color:#fbbf24;font-size:.8em" title="Colectez date (${ls.total}/${minSamples*24} comparații)">🧠…</span>`;
+  }
+  el('w-loc').innerHTML='📍 <b>'+shortName+'</b>'+elevTxt+learnIco;
   el('upd').textContent='↺ '+new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
   if(typeof tickWidgetClock==='function')tickWidgetClock();
 
@@ -862,7 +883,12 @@ function render(hours){
       `<b>${nre.total.toFixed(1).replace('.',',')} l</b> · ora ${nre.from}–${nre.to}</div>`);
   }
   const warm=(dMon(dk0)>=4&&dMon(dk0)<=9);
-  const cross=tempCross(dayHours(hours,dk0).filter(h=>h.h>=h0),warm);
+  const h0now=hNow();
+  const todayRemaining=dayHours(hours,dk0).filter(h=>h.h>=h0now);
+  // Verificare dublă: orele rămase din zi + ora curentă explicit (pt robustețe la TZ edge-cases)
+  const cross=tempCross(todayRemaining,warm) ||
+    (warm&&cur&&cur.tMean!=null&&cur.tMean>=HEAT_T ? {ivs:[fH(h0now)+'–24:00'],extreme:Math.round(cur.tMean)} : null) ||
+    (!warm&&cur&&cur.tMean!=null&&cur.tMean<=FROST_T ? {ivs:[fH(h0now)+'–24:00'],extreme:Math.round(cur.tMean)} : null);
   if(cross){
     const cls=warm?'heat':'frost';
     const ic=warm?'🔥':'❄';
@@ -1218,7 +1244,7 @@ function setLoc(kind){
   _locKind=kind;
   const L=LOCS[kind];
   LAT=L.obj.lat; LON=L.obj.lon; TZ=L.obj.tz; LOC_NAME=L.obj.name;
-  ELEV_OVERRIDE=L.obj.elev||null;
+  ELEV_OVERRIDE=L.obj.elev||null; _resolvedElev=null;
   document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
   el(L.id).classList.add('active');
   if(countryFromTZ(TZ)!==_owFetchedFor){_owCache=[];_owStatus='';_owCountryWide=0;renderOfficialWarnings();}
@@ -1331,21 +1357,31 @@ window.addEventListener('storage',e=>{
       if(o.loc&&typeof o.loc.lat==='number'){
         const loc=LOCS[o.loc.kind];
         if(loc){
-          // locație fixă recunoscută → actualizează butonul activ
-          if(o.loc.kind!==_locKind){
-            _locKind=o.loc.kind;
-            document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
-            const btn=el(loc.id);if(btn)btn.classList.add('active');
+          // locație fixă recunoscută din MeteoDaneti — preia doar dacă widgetul NU are o căutare liberă activă
+          if(_locKind!=='search'){
+            if(o.loc.kind!==_locKind){
+              _locKind=o.loc.kind;
+              document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+              const btn=el(loc.id);if(btn)btn.classList.add('active');
+              LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;
+              LOC_NAME=o.loc.name||LOC_NAME;ELEV_OVERRIDE=o.loc.elev!=null?o.loc.elev:null;
+              el('w-loc').innerHTML='📍 <b>'+LOC_NAME.split(',')[0].trim()+'</b>';
+              changed=true;
+            }
           }
+          // dacă widgetul e pe căutare liberă (Paris etc.) → ignoră complet locația din MeteoDaneti
         } else {
-          // locație liberă (căutare) — actualizează direct
-          _locKind='search';
-          document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+          // MeteoDaneti e pe căutare liberă → preia doar dacă și widgetul e pe search
+          // (evitată suprascrierea Paris cu altă căutare declanșată din MeteoDaneti)
+          if(_locKind==='search'){
+            _locKind='search';
+            document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+            LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;
+            LOC_NAME=o.loc.name||LOC_NAME;ELEV_OVERRIDE=o.loc.elev!=null?o.loc.elev:null;
+            el('w-loc').innerHTML='📍 <b>'+LOC_NAME.split(',')[0].trim()+'</b>';
+            changed=true;
+          }
         }
-        LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;
-        LOC_NAME=o.loc.name||LOC_NAME;ELEV_OVERRIDE=o.loc.elev!=null?o.loc.elev:null;
-        el('w-loc').textContent='📍 '+LOC_NAME;
-        changed=true;
       }
       if(o.thr){
         const T=o.thr;
