@@ -10,133 +10,100 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0}
+html,body{height:100%;margin:0;overflow:hidden}
 body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
-  font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  font-family:'Segoe UI',system-ui,sans-serif;}
 
-/* Cardul-widget = singura zona vizibila; click oriunde pe el deschide aplicatia completa.
-   Instalat pe telefon, ocupa tot ecranul (nu un tile mic) — dimensiunile sunt gandite pt asta. */
+/* Card ocupa tot spatiul deasupra ctrl-bar, padding-bottom lasa loc barei */
 #card{
-  display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,2.2vh,22px);
-  width:100%;height:calc(100vh - 96px);padding:clamp(16px,5vw,32px);cursor:pointer;
-  border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;
-  text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;justify-content:space-evenly;
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  padding:clamp(12px,3.5vw,24px) clamp(12px,3.5vw,24px) 185px;
+  cursor:pointer;border:1px solid rgba(255,255,255,.08);
+  text-decoration:none;color:inherit;overflow-y:auto;overflow-x:hidden;
 }
 #card:active{background:rgba(255,255,255,.03)}
-
-.row1{display:flex;align-items:center;gap:clamp(14px,4vw,24px);min-width:0}
-.ico{font-size:clamp(3.2rem,16vw,5.5rem);line-height:1;flex:0 0 auto}
-.tblock{display:flex;flex-direction:column;min-width:0;flex:1;gap:4px}
-.temp{font-size:clamp(3.4rem,18vw,6rem);font-weight:800;line-height:1.0;white-space:nowrap}
-.temp .unit{font-size:.5em;font-weight:600;color:#9fb3c8}
-.sub{font-size:clamp(1.05rem,4.6vw,1.5rem);color:#cdd9e6;line-height:1.35;font-weight:600}
-.loc{font-size:clamp(.92rem,3.6vw,1.15rem);color:#7c93ad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:auto;font-weight:600}
-
-.lines{display:flex;flex-direction:column;gap:clamp(6px,1.4vh,11px);min-width:0}
-.line{font-size:clamp(.95rem,4vw,1.28rem);color:#cdd9e6;line-height:1.4;
-  display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-weight:600}
-.line b{color:#fff;font-weight:800}
-.line.hi{color:#fbbf24}
-.line.rainevt{color:#7dd3fc;font-weight:700;background:rgba(56,189,248,.12);
-  border:1px solid rgba(125,211,252,.3);border-radius:9px;padding:6px 10px}
-.line.heat{color:#fb7185;font-weight:700}
-.line.frost{color:#7dd3fc;font-weight:700}
-
-/* Banda zilelor (5 zile, nu 7 — mai mult loc per zi) — apare doar daca exista inaltime suficienta */
-#strip{display:none;gap:6px;margin-top:6px}
-#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:10px;padding:8px 2px}
-#strip .dname{font-size:clamp(.8rem,3vw,1rem);color:#9fb3c8;font-weight:700}
-#strip .dico{font-size:clamp(1.5rem,6.5vw,2.1rem);line-height:1.3;margin:2px 0}
-#strip .dmax{font-size:clamp(.92rem,3.6vw,1.18rem);font-weight:800;color:#fbbf24}
-#strip .dmin{font-size:clamp(.8rem,3.1vw,1.02rem);color:#7dd3fc;font-weight:700}
-#strip .ddet{display:flex;flex-direction:column;gap:1px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.08)}
-#strip .drain{font-size:clamp(.66rem,2.5vw,.84rem);font-weight:800;color:#60a5fa}
-#strip .dwind{font-size:clamp(.66rem,2.5vw,.84rem);font-weight:800;color:#34d399}
-#strip .ddew{font-size:clamp(.64rem,2.4vw,.8rem);font-weight:800;color:#22d3ee}
-
-#upd{position:absolute;bottom:8px;right:14px;font-size:.78rem;color:#46617f;font-weight:600}
-
-/* ── Breakpoints: pe ecran intreg de telefon (cazul normal, instalat) cad mereu in bucket-ul ──
-   "inalt" de mai jos, deci se vede TOT sumarul. Bucket-urile mici raman doar pt eventuala
-   redimensionare manuala a ferestrei pe desktop. ── */
-@media (max-height: 130px){
-  #lines, #strip{display:none!important}
-  .loc{display:none}
-  #card{justify-content:center;gap:4px}
-  .ico{font-size:clamp(1.6rem,9vw,2.4rem)}
-  .temp{font-size:clamp(1.3rem,8vw,2.1rem)}
-  .sub{font-size:clamp(.7rem,3vw,.9rem)}
-}
-@media (min-height: 131px) and (max-height: 260px){
-  #strip{display:none!important}
-}
-@media (min-height: 261px) and (min-width: 280px){
-  #strip{display:flex}
-}
-@media (max-width:220px){
-  .loc{display:none}
-}
-
-/* ── Bara de controale: locație + selector surse — în afara link-ului ── */
-#ctrl-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:100;
-  background:rgba(5,10,18,.92);backdrop-filter:blur(10px);
-  border-top:1px solid rgba(255,255,255,.1);
-  padding:8px 14px 10px;display:flex;flex-direction:column;gap:6px;
-}
-.ctrl-row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
-.ctrl-lbl{font-size:.72rem;color:#5a7390;font-weight:700;white-space:nowrap;min-width:44px}
-
-/* Butoane locație */
-.loc-btns{display:flex;gap:4px;flex-wrap:wrap;flex:1}
-.loc-btn{
-  font-size:.72rem;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.15);
-  background:rgba(255,255,255,.06);color:#9fb3c8;cursor:pointer;white-space:nowrap;
-  transition:all .18s;
-}
-.loc-btn.active{background:#0e4f73;color:#7dd3fc;border-color:#3b82f6}
-.loc-btn:active{opacity:.7}
-
-/* Butoane surse */
-.src-btns{display:flex;gap:4px;flex:1}
-.src-btn{
-  flex:1;font-size:.72rem;font-weight:700;padding:4px 6px;border-radius:6px;
-  border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);
-  color:#9fb3c8;cursor:pointer;text-align:center;transition:all .18s;
-}
-.src-btn.active{background:#064e3b;color:#34d399;border-color:#10b981}
-.src-btn:active{opacity:.7}
-
-/* ── Avertizări oficiale compacte în widget ── */
-.ow-item{border-radius:8px;padding:7px 10px;border:1px solid;display:flex;flex-direction:column;gap:3px;margin-bottom:2px}
-.ow-head{display:flex;align-items:center;gap:7px;font-weight:800;font-size:clamp(.78rem,3.2vw,.92rem);line-height:1.2}
-.ow-ico{font-size:1.1rem;line-height:1;flex:0 0 auto}
-.ow-meta{font-size:.7rem;font-weight:700;opacity:.9}
-.ow-body{font-size:.78rem;line-height:1.35;font-weight:500}
-.ow-toggle{cursor:pointer;text-decoration:underline;font-size:.74rem;font-weight:700;opacity:.9;margin-top:2px;align-self:flex-start}
-.ow-full{display:none;font-size:.76rem;line-height:1.45;margin-top:3px;padding-top:5px;border-top:1px solid rgba(255,255,255,.2);white-space:pre-wrap}
-.ow-full.open{display:block}
-.ow-yellow{background:rgba(250,204,21,.16);border-color:#facc15;color:#fde68a}
-.ow-yellow .ow-head{color:#fde047}
-.ow-orange{background:rgba(251,146,60,.18);border-color:#fb923c;color:#fed7aa}
-.ow-orange .ow-head{color:#fdba74}
-.ow-red{background:rgba(239,68,68,.20);border-color:#ef4444;color:#fecaca}
-.ow-red .ow-head{color:#fca5a5}
-.ow-info{background:rgba(56,90,128,.18);border-color:#3b6291;color:#bcd0e3;font-size:.78rem}
-.ow-info .ow-head{color:#cfe0f2;font-size:.82rem;font-weight:700}
-.ref-row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-top:2px}
-.ref-row label{font-size:.7rem;color:#5a7390;font-weight:700;white-space:nowrap}
-.ref-row select{
-  background:#0d1a27;color:#cfe0f2;border:1px solid rgba(255,255,255,.18);
-  border-radius:6px;padding:3px 6px;font-size:.7rem;font-weight:700;flex:1;
-}
-@keyframes refreshFlash{
-  0%  {border-color:rgba(255,255,255,.08)}
-  30% {border-color:#10b981;box-shadow:0 0 18px rgba(16,185,129,.35)}
-  100%{border-color:rgba(255,255,255,.08)}
-}
 #card.flashing{animation:refreshFlash 1.4s ease-out forwards}
 
+.row1{display:flex;align-items:center;gap:clamp(10px,3vw,18px);min-width:0;flex-shrink:0}
+.ico{font-size:clamp(2.6rem,13vw,4.5rem);line-height:1;flex:0 0 auto}
+.tblock{display:flex;flex-direction:column;min-width:0;flex:1;gap:2px}
+.temp{font-size:clamp(2.8rem,14vw,5rem);font-weight:800;line-height:1.0;white-space:nowrap}
+.temp .unit{font-size:.5em;font-weight:600;color:#9fb3c8}
+.sub{font-size:clamp(.9rem,3.8vw,1.25rem);color:#cdd9e6;line-height:1.3;font-weight:600}
+.loc{font-size:clamp(.78rem,3vw,.95rem);color:#7c93ad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+
+.lines{display:flex;flex-direction:column;gap:clamp(4px,1vh,8px);min-width:0;flex-shrink:0}
+.line{font-size:clamp(.84rem,3.5vw,1.1rem);color:#cdd9e6;line-height:1.3;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-weight:600}
+.line b{color:#fff;font-weight:800}
+.line.hi{color:#fbbf24}
+.line.rainevt{color:#7dd3fc;font-weight:700;background:rgba(56,189,248,.1);
+  border:1px solid rgba(125,211,252,.25);border-radius:7px;padding:4px 8px}
+.line.heat{color:#fb7185;font-weight:700}
+.line.frost{color:#7dd3fc;font-weight:700}
+.sep{color:#4a6070}
+
+#strip{display:flex;gap:4px;flex-shrink:0}
+#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:8px;padding:5px 1px}
+#strip .dname{font-size:clamp(.68rem,2.4vw,.84rem);color:#9fb3c8;font-weight:700}
+#strip .dico{font-size:clamp(1.1rem,4.8vw,1.6rem);line-height:1.2;margin:1px 0}
+#strip .dmax{font-size:clamp(.74rem,2.9vw,.94rem);font-weight:800;color:#fbbf24}
+#strip .dmin{font-size:clamp(.68rem,2.5vw,.86rem);color:#7dd3fc;font-weight:700}
+#strip .ddet{display:flex;flex-direction:column;gap:1px;margin-top:3px;padding-top:3px;border-top:1px solid rgba(255,255,255,.08)}
+#strip .drain{font-size:clamp(.58rem,2vw,.74rem);font-weight:800;color:#60a5fa}
+#strip .dwind{font-size:clamp(.58rem,2vw,.74rem);font-weight:800;color:#34d399}
+#strip .ddew{font-size:clamp(.56rem,1.9vw,.72rem);font-weight:800;color:#22d3ee}
+
+#upd{position:fixed;top:6px;right:10px;font-size:.66rem;color:#46617f;font-weight:600;z-index:50}
+#offwarn{margin-bottom:5px;flex-shrink:0}
+
+/* Avertizari */
+.ow-item{border-radius:7px;padding:5px 9px;border:1px solid;display:flex;flex-direction:column;gap:2px;margin-bottom:2px}
+.ow-head{display:flex;align-items:center;gap:6px;font-weight:800;font-size:clamp(.74rem,2.8vw,.88rem)}
+.ow-ico{font-size:.95rem;line-height:1;flex:0 0 auto}
+.ow-meta{font-size:.66rem;font-weight:700;opacity:.9}
+.ow-body{font-size:.74rem;line-height:1.3;font-weight:500}
+.ow-toggle{cursor:pointer;text-decoration:underline;font-size:.7rem;font-weight:700;opacity:.9;margin-top:2px;align-self:flex-start}
+.ow-full{display:none;font-size:.72rem;line-height:1.4;margin-top:3px;padding-top:4px;border-top:1px solid rgba(255,255,255,.2);white-space:pre-wrap}
+.ow-full.open{display:block}
+.ow-yellow{background:rgba(250,204,21,.14);border-color:#facc15;color:#fde68a}
+.ow-yellow .ow-head{color:#fde047}
+.ow-orange{background:rgba(251,146,60,.16);border-color:#fb923c;color:#fed7aa}
+.ow-orange .ow-head{color:#fdba74}
+.ow-red{background:rgba(239,68,68,.18);border-color:#ef4444;color:#fecaca}
+.ow-red .ow-head{color:#fca5a5}
+.ow-info{background:rgba(56,90,128,.14);border-color:#3b6291;color:#bcd0e3}
+.ow-info .ow-head{color:#cfe0f2;font-size:.78rem;font-weight:700}
+
+/* Bara de controale fixa jos */
+#ctrl-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(5,10,18,.96);backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,.12);
+  padding:6px 11px 8px;display:flex;flex-direction:column;gap:5px;
+}
+.ctrl-row{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
+.ctrl-lbl{font-size:.68rem;color:#5a7390;font-weight:700;white-space:nowrap;min-width:38px}
+.loc-btns{display:flex;gap:3px;flex-wrap:wrap;flex:1}
+.loc-btn{font-size:.68rem;font-weight:700;padding:3px 7px;border-radius:5px;
+  border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);
+  color:#9fb3c8;cursor:pointer;white-space:nowrap;transition:all .18s}
+.loc-btn.active{background:#0e4f73;color:#7dd3fc;border-color:#3b82f6}
+.src-btns{display:flex;gap:3px;flex:1}
+.src-btn{flex:1;font-size:.68rem;font-weight:700;padding:3px 4px;border-radius:5px;
+  border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);
+  color:#9fb3c8;cursor:pointer;text-align:center;transition:all .18s}
+.src-btn.active{background:#064e3b;color:#34d399;border-color:#10b981}
+.ref-row label{font-size:.68rem;color:#5a7390;font-weight:700;white-space:nowrap}
+.ref-row select{background:#0d1a27;color:#cfe0f2;border:1px solid rgba(255,255,255,.18);
+  border-radius:5px;padding:3px 4px;font-size:.68rem;font-weight:700;flex:1}
+
+@keyframes refreshFlash{
+  0%{border-color:rgba(255,255,255,.08)}
+  30%{border-color:#10b981;box-shadow:0 0 16px rgba(16,185,129,.3)}
+  100%{border-color:rgba(255,255,255,.08)}
+}
 </style>
 </head>
 <body>
@@ -145,14 +112,17 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   <div class="row1">
     <span class="ico" id="w-ico">🌦</span>
     <div class="tblock">
-      <span class="temp" id="w-temp">—<span class="unit">°C</span></span>
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span class="temp" id="w-temp">—<span class="unit">°C</span></span>
+        <span id="w-clock" style="font-size:clamp(1.6rem,7vw,2.4rem);font-weight:800;letter-spacing:.04em"></span>
+      </div>
       <span class="sub" id="w-sub">Se încarcă…</span>
+      <span class="loc" id="w-loc"></span>
     </div>
   </div>
   <div class="lines" id="lines"></div>
   <div id="strip"></div>
-  <span class="loc" id="w-loc"></span>
-  <span id="upd"></span>
+  <span id="upd" style="position:absolute;bottom:8px;right:14px;font-size:.72rem;color:#46617f;font-weight:600"></span>
 </a>
 
 <!-- Bara de controale — în afara link-ului, click-urile nu deschid aplicația principală -->
@@ -166,6 +136,19 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
       <button class="loc-btn"        id="btn-raieti"  onclick="setLoc('raieti')">Raieti</button>
     </div>
   </div>
+  <!-- Câmp căutare liberă -->
+  <div class="ctrl-row" style="gap:4px">
+    <input id="w-loc-q" type="text" placeholder="Caută altă locație…" autocomplete="off"
+      style="flex:1;background:#0d1a27;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;
+             padding:4px 8px;font-size:.72rem;font-weight:600;outline:none"
+      onkeydown="if(event.key==='Enter')searchWidgetLoc()"
+      oninput="el('w-loc-res').style.display='none'">
+    <button onclick="searchWidgetLoc()"
+      style="background:#0e4f73;color:#7dd3fc;border:1px solid #3b82f6;border-radius:6px;
+             padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">Caută</button>
+  </div>
+  <!-- Rezultate căutare -->
+  <div id="w-loc-res" style="display:none;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto"></div>
   <div class="ctrl-row">
     <span class="ctrl-lbl">🛰 Surse:</span>
     <div class="src-btns">
@@ -787,9 +770,26 @@ function loadSharedSettings(){
 }
 
 let _lastHours=[];
+let _settingsLoaded=false;   // loadSharedSettings se apelează o singură dată la pornire
 
 async function loadWidget(){
-  loadSharedSettings();
+  // Pragurile se citesc la fiecare refresh (pot fi schimbate din MeteoDaneti),
+  // dar LAT/LON/TZ/LOC_NAME/locKind NU se suprascriu dacă utilizatorul a ales deja o locație în widget
+  if(!_settingsLoaded){ loadSharedSettings(); _settingsLoaded=true; }
+  else {
+    // la refresh ulterior: preia doar pragurile (nu locația — ar anula selecția din widget)
+    try{
+      const raw=localStorage.getItem(LS_KEY);
+      if(raw){const o=JSON.parse(raw);if(o&&o.thr){const T=o.thr;
+        if(typeof T.RAIN_MIN==='number')RAIN_MIN=T.RAIN_MIN;
+        if(typeof T.WIND_MIN==='number')WIND_MIN=T.WIND_MIN;
+        if(typeof T.FROST_T==='number')FROST_T=T.FROST_T;
+        if(typeof T.HEAT_T==='number')HEAT_T=T.HEAT_T;
+        if(typeof T.P_LOW==='number')P_LOW=T.P_LOW;
+        if(typeof T.P_HIGH==='number')P_HIGH=T.P_HIGH;
+      }}
+    }catch(e){}
+  }
   const ids=resolvedIds(LAT,LON);
   if(!ids.length){ renderError(); return; }
   const omPick =OM_MODELS.filter(m=>ids.includes(m.id));
@@ -805,6 +805,7 @@ async function loadWidget(){
   _lastHours=hours;
   render(hours);
   flashCard();
+  cycleClockColor();   // schimbă culoarea ceasului — confirmă vizual că refresh-ul a funcționat
   refreshMainAppLink();
   checkNotifications(hours);
   fetchOfficialWarnings();     // avertizări oficiale — asincron izolat, nu blochează prognoza
@@ -832,7 +833,8 @@ function render(hours){
   el('w-temp').innerHTML=(t!=null?t:'—')+'<span class="unit">°C</span>';
   el('w-sub').textContent=cond.t+(at!=null?' · resimțit '+at+'°':'')+(maxToday!=null?' · Max '+maxToday+'°':'');
   el('w-loc').textContent='📍 '+LOC_NAME;
-  el('upd').textContent=new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  el('upd').textContent='↺ '+new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  if(typeof tickWidgetClock==='function')tickWidgetClock();
 
   // ── Linii — PARITATE COMPLETĂ cu sumarul din MeteoDaneti.html (mm+% 1h/2h ploaie, km/h+% 1h/2h vânt) ──
   const up=hours.filter(h=>h.dk>dk0||(h.dk===dk0&&h.h>=h0)).slice(0,2);
@@ -1207,7 +1209,8 @@ function setWidgetRefreshInterval(minutes){
   if(_refreshTimer)clearInterval(_refreshTimer);
   _refreshTimer=setInterval(loadWidget,REFRESH_MS);
   const sel=el('w-refresh-sel');if(sel)sel.value=String(m);
-  saveWidgetState();
+  saveWidgetState();   // notifică MeteoDaneti despre noul interval
+  loadWidget();        // actualizează imediat datele în widget
 }
 
 function setLoc(kind){
@@ -1251,7 +1254,66 @@ function flashCard(){
   setTimeout(()=>c.classList.remove('flashing'),1500);
 }
 
-// ── Pornire ──────────────────────────────────────────────────────────────
+// ── Ceas live în widget ──────────────────────────────────────────────────
+// Culori ceas — se rotesc la fiecare actualizare ca să confirme vizual refresh-ul
+const CLOCK_COLORS=['#7dd3fc','#6ee7b7','#fbbf24','#f9a8d4','#a5b4fc','#fb923c','#34d399','#38bdf8','#e879f9','#facc15'];
+let _clockColorIdx=0;
+function cycleClockColor(){
+  _clockColorIdx=(_clockColorIdx+1)%CLOCK_COLORS.length;
+  const c=el('w-clock');if(c)c.style.color=CLOCK_COLORS[_clockColorIdx];
+}
+
+function tickWidgetClock(){
+  const c=el('w-clock');if(!c)return;
+  try{c.textContent=new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',timeZone:TZ});}
+  catch(e){c.textContent=new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}
+}
+tickWidgetClock();setInterval(tickWidgetClock,1000);
+
+// ── Căutare liberă de locație în widget (Open-Meteo geocoding) ───────────
+async function searchWidgetLoc(){
+  const q=(el('w-loc-q').value||'').trim();
+  if(q.length<2)return;
+  const res=el('w-loc-res');res.style.display='none';res.innerHTML='';
+  try{
+    const p=new URLSearchParams({name:q,count:5,language:'ro',format:'json'});
+    const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?'+p);
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.results||!d.results.length){
+      res.innerHTML='<div style="font-size:.7rem;color:#9fb3c8;padding:4px 8px">Nicio locație găsită</div>';
+      res.style.display='flex';res.style.flexDirection='column';return;
+    }
+    res.innerHTML=d.results.map((g,i)=>{
+      const nm=[g.name,g.admin1,g.country].filter(Boolean).join(', ');
+      return `<button onclick="pickWidgetLoc(${i})" data-idx="${i}"
+        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:6px;
+               color:#cfe0f2;padding:4px 8px;font-size:.7rem;font-weight:600;cursor:pointer;text-align:left">
+        📍 ${nm}</button>`;
+    }).join('');
+    res.style.display='flex';res.style.flexDirection='column';
+    // stocam rezultatele pt a le putea accesa la click
+    el('w-loc-res')._results=d.results;
+  }catch(e){}
+}
+
+function pickWidgetLoc(idx){
+  const g=el('w-loc-res')._results&&el('w-loc-res')._results[idx];
+  if(!g)return;
+  LAT=g.latitude;LON=g.longitude;
+  TZ=g.timezone||TZ;
+  LOC_NAME=[g.name,g.admin1,g.country].filter(Boolean).join(', ');
+  ELEV_OVERRIDE=null;_locKind='search';
+  // dezactivează butoanele fixe
+  document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+  el('w-loc-res').style.display='none';
+  el('w-loc-q').value='';
+  if(countryFromTZ(TZ)!==_owFetchedFor){_owCache=[];_owStatus='';_owCountryWide=0;renderOfficialWarnings();}
+  saveWidgetState();
+  loadWidget();
+}
+
+// ── Schimbă intervalul de refresh + actualizează imediat + notifică MeteoDaneti ──
 restoreRefreshInterval();
 refreshMainAppLink();
 loadWidget();
