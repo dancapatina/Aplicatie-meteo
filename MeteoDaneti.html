@@ -137,27 +137,29 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nowcast .nc-rainevt b{color:#fff}
 
 /* ── Avertizări oficiale (Meteoalarm/ANM/Met Office) — rămân vizibile separat de nowcast ── */
-#offwarn{max-width:560px;margin:9px 0 4px;display:none;flex-direction:column;gap:7px}
-.ow-item{border-radius:11px;padding:10px 13px;border:1px solid;display:flex;flex-direction:column;gap:5px;
-  position:relative;animation:owFlash 1.2s ease-out}
-@keyframes owFlash{0%{box-shadow:0 0 0 rgba(255,255,255,0)}40%{box-shadow:0 0 16px rgba(255,255,255,.25)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
-.ow-head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.02rem;line-height:1.2}
-.ow-ico{font-size:1.35rem;line-height:1;flex:0 0 auto}
+#offwarn{max-width:560px;margin:9px 0 4px;display:none;flex-direction:column;gap:6px}
+/* Iconițe compacte (chips) — ocupă minim, click pe ele expandează textul */
+.ow-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ow-chip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid;
+  border-radius:20px;padding:5px 12px;font-weight:800;font-size:.86rem;line-height:1;
+  font-family:inherit;animation:owPulse 1.6s ease-out}
+@keyframes owPulse{0%{box-shadow:0 0 0 rgba(255,255,255,0)}40%{box-shadow:0 0 14px rgba(255,255,255,.3)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
+.ow-chip-ico{font-size:1.15rem;line-height:1}
+.ow-chip-lbl{white-space:nowrap}
+.ow-chip-caret{font-size:.72rem;opacity:.8}
+.ow-chip:active{transform:scale(.96)}
+/* Panoul cu textul ANM complet — ascuns implicit, apare la click pe chip */
+.ow-panel{display:none;border:1px solid;border-radius:11px;padding:11px 14px;flex-direction:column;gap:5px}
+.ow-panel.open{display:flex}
+.ow-panel-head{font-weight:800;font-size:1rem;line-height:1.25}
+.ow-panel-body{font-size:.9rem;line-height:1.5;font-weight:500;white-space:pre-wrap;margin-top:3px;padding-top:7px;border-top:1px solid rgba(255,255,255,.18)}
 .ow-meta{font-size:.78rem;font-weight:700;opacity:.92}
-.ow-body{font-size:.9rem;line-height:1.45;font-weight:500}
-.ow-toggle{cursor:pointer;text-decoration:underline;font-size:.82rem;font-weight:700;opacity:.92;margin-top:2px;align-self:flex-start}
-.ow-full{display:none;font-size:.88rem;line-height:1.5;margin-top:4px;padding-top:7px;border-top:1px solid rgba(255,255,255,.2);font-weight:500;white-space:pre-wrap}
-.ow-full.open{display:block}
-/* Niveluri de severitate Meteoalarm — culori standard */
-.ow-yellow{background:rgba(250,204,21,.16);border-color:#facc15;color:#fde68a}
-.ow-yellow .ow-head{color:#fde047}
-.ow-orange{background:rgba(251,146,60,.18);border-color:#fb923c;color:#fed7aa}
-.ow-orange .ow-head{color:#fdba74}
-.ow-red{background:rgba(239,68,68,.20);border-color:#ef4444;color:#fecaca}
-.ow-red .ow-head{color:#fca5a5}
+.ow-note{font-size:.82rem;color:#bcd0e3;background:rgba(56,90,128,.18);border:1px solid #3b6291;border-radius:9px;padding:7px 12px;font-weight:600}
+/* Niveluri de severitate Meteoalarm — culori standard, aplicate la chip + panel */
+.ow-yellow{background:rgba(250,204,21,.16);border-color:#facc15;color:#fde047}
+.ow-orange{background:rgba(251,146,60,.20);border-color:#fb923c;color:#fdba74}
+.ow-red{background:rgba(239,68,68,.22);border-color:#ef4444;color:#fca5a5}
 .ow-unknown{background:rgba(148,163,184,.16);border-color:#94a3b8;color:#cbd5e1}
-.ow-info{background:rgba(56,90,128,.18);border-color:#3b6291;color:#bcd0e3;animation:none}
-.ow-info .ow-head{color:#cfe0f2;font-size:.96rem}
 .locbar{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .loc-fixed{font-size:.78rem;padding:5px 11px;background:#1e3a5f;border:2px solid transparent;transition:background .15s,border-color .15s}
 .loc-fixed.active{background:#065f46;border-color:#34d399}
@@ -1007,47 +1009,84 @@ function parseMeteoalarmAtom(xmlText){
     const doc=new DOMParser().parseFromString(xmlText,'text/xml');
     const entries=doc.querySelectorAll('entry');
     const now=Date.now();
+    // Helper robust la namespace: caută text într-un element după numele LOCAL (ignoră prefixul cap:)
+    const localText=(parent,localName)=>{
+      // 1) încearcă direct
+      let n=parent.querySelector(localName);
+      if(n&&n.textContent.trim())return n.textContent.trim();
+      // 2) iterează toate elementele și compară numele local (fără prefix namespace)
+      const all=parent.getElementsByTagName('*');
+      for(let i=0;i<all.length;i++){
+        const ln=all[i].localName||all[i].tagName.replace(/^.*:/,'');
+        if(ln===localName&&all[i].textContent.trim())return all[i].textContent.trim();
+      }
+      return '';
+    };
     entries.forEach(en=>{
       const get=(sel)=>{const n=en.querySelector(sel);return n?n.textContent.trim():'';};
-      // expires — sărim peste avertizările deja expirate
-      const expRaw=get('expires')||en.getElementsByTagName('cap:expires')[0]?.textContent||'';
-      const effRaw=get('effective')||en.getElementsByTagName('cap:effective')[0]?.textContent||'';
-      const onsetRaw=en.getElementsByTagName('cap:onset')[0]?.textContent||effRaw;
+      const expRaw=localText(en,'expires');
+      const effRaw=localText(en,'effective');
+      const onsetRaw=localText(en,'onset')||effRaw;
       const exp=expRaw?Date.parse(expRaw):null;
       if(exp&&exp<now)return;  // expirată → ignorăm
 
-      // parametri awareness_level / awareness_type din <cap:parameter>
+      // parametri awareness_level / awareness_type
       let lvl='',typ='';
-      en.querySelectorAll('parameter, cap\\:parameter').forEach(p=>{
-        const k=(p.querySelector('valueName')||p.getElementsByTagName('valueName')[0])?.textContent||'';
-        const v=(p.querySelector('value')||p.getElementsByTagName('value')[0])?.textContent||'';
-        if(/awareness_level/i.test(k)) lvl=(v.match(/(\d+)/)||[])[1]||'';
-        if(/awareness_type/i.test(k))  typ=(v.match(/(\d+)/)||[])[1]||'';
-      });
-      const event=get('event')||en.getElementsByTagName('cap:event')[0]?.textContent||'Avertizare meteo';
-      const headline=get('title')||event;
-      const desc=get('summary')||get('description')||en.getElementsByTagName('cap:description')[0]?.textContent||'';
-      const area=en.getElementsByTagName('cap:areaDesc')[0]?.textContent||get('areaDesc')||'';
+      const params=en.getElementsByTagName('*');
+      for(let i=0;i<params.length;i++){
+        const ln=params[i].localName||params[i].tagName.replace(/^.*:/,'');
+        if(ln==='parameter'){
+          let k='',v='';
+          const kids=params[i].getElementsByTagName('*');
+          for(let j=0;j<kids.length;j++){
+            const kln=kids[j].localName||kids[j].tagName.replace(/^.*:/,'');
+            if(kln==='valueName')k=kids[j].textContent.trim();
+            if(kln==='value')v=kids[j].textContent.trim();
+          }
+          if(/awareness_level/i.test(k))lvl=(v.match(/(\d+)/)||[])[1]||'';
+          if(/awareness_type/i.test(k))typ=(v.match(/(\d+)/)||[])[1]||'';
+        }
+      }
+      const event=localText(en,'event')||'Avertizare meteo';
+      const headline=localText(en,'headline')||get('title')||event;
+      // Textul complet: combină description + instruction; fallback pe summary/content/title
+      const description=localText(en,'description');
+      const instruction=localText(en,'instruction');
+      const summary=get('summary')||localText(en,'summary');
+      const content=get('content')||localText(en,'content');
+      let desc=[description,instruction].filter(Boolean).join('\n\n');
+      if(!desc)desc=summary||content||'';
+      // dacă summary e mai bogat decât description (uneori ANM pune tot în summary), îl preferăm
+      if(summary&&summary.length>desc.length)desc=summary;
+      const area=localText(en,'areaDesc');
 
-      // ── Geometrie pt filtrare pe locație ──
-      // 1) poligoane CAP: <cap:polygon>lat,lon lat,lon ...</cap:polygon> (pot fi mai multe)
+      // poligoane
       const polys=[];
-      en.querySelectorAll('polygon, cap\\:polygon').forEach(pg=>{
-        const pts=pg.textContent.trim().split(/\s+/).map(pair=>{
-          const [la,lo]=pair.split(',').map(Number);
-          return (isFinite(la)&&isFinite(lo))?[la,lo]:null;
-        }).filter(Boolean);
-        if(pts.length>=3)polys.push(pts);
-      });
-      // 2) geocodes EMMA_ID: <cap:geocode><valueName>EMMA_ID</valueName><value>RO008</value></cap:geocode>
+      for(let i=0;i<params.length;i++){
+        const ln=params[i].localName||params[i].tagName.replace(/^.*:/,'');
+        if(ln==='polygon'){
+          const pts=params[i].textContent.trim().split(/\s+/).map(pair=>{
+            const [la,lo]=pair.split(',').map(Number);
+            return (isFinite(la)&&isFinite(lo))?[la,lo]:null;
+          }).filter(Boolean);
+          if(pts.length>=3)polys.push(pts);
+        }
+      }
+      // geocodes
       const geocodes=[];
-      en.querySelectorAll('geocode, cap\\:geocode').forEach(gc=>{
-        const v=(gc.querySelector('value')||gc.getElementsByTagName('value')[0])?.textContent||'';
-        if(v)geocodes.push(v.trim());
-      });
+      for(let i=0;i<params.length;i++){
+        const ln=params[i].localName||params[i].tagName.replace(/^.*:/,'');
+        if(ln==='geocode'){
+          const kids=params[i].getElementsByTagName('*');
+          for(let j=0;j<kids.length;j++){
+            const kln=kids[j].localName||kids[j].tagName.replace(/^.*:/,'');
+            if(kln==='value'&&kids[j].textContent.trim())geocodes.push(kids[j].textContent.trim());
+          }
+        }
+      }
 
       out.push({
-        id:get('id')||headline+effRaw,
+        id:localText(en,'id')||get('id')||headline+effRaw,
         level:lvl, type:typ,
         event, headline, desc, area,
         effective:effRaw, expires:expRaw,
@@ -1056,7 +1095,6 @@ function parseMeteoalarmAtom(xmlText){
       });
     });
   }catch(e){/* XML invalid → listă goală */}
-  // dedup după id; sortează după severitate descrescătoare
   const seen=new Set(),uniq=[];
   out.forEach(w=>{if(!seen.has(w.id)){seen.add(w.id);uniq.push(w);}});
   uniq.sort((a,b)=>(parseInt(b.level||0)-parseInt(a.level||0)));
@@ -1143,58 +1181,52 @@ function fmtDtShort(iso){
 function renderOfficialWarnings(){
   const box=el('offwarn');if(!box)return;
 
-  // ── Mesaje informative când nu avem avertizări locale de afișat ──
+  // Fără avertizări locale → notă mică DOAR pt cazuri speciale, altfel ascuns
   if(!_owCache.length){
-    // OPȚIUNEA 2: locație în afara Europei → notă discretă (nu secțiune goală)
     if(_owStatus==='non-europe'){
       box.style.display='flex';
-      box.innerHTML=`<div class="ow-item ow-info">`+
-        `<div class="ow-head"><span class="ow-ico">🌍</span><span>Avertizări oficiale indisponibile</span></div>`+
-        `<div class="ow-body">Avertizările meteo oficiale sunt disponibile doar pentru Europa (rețeaua Meteoalarm/EUMETNET). `+
-        `Pentru această locație, folosește prognoza și pragurile din aplicație.</div>`+
-      `</div>`;
+      box.innerHTML=`<div class="ow-note">🌍 Avertizări oficiale: doar pentru Europa (Meteoalarm/EUMETNET)</div>`;
       return;
     }
-    // Căutare liberă în Europa: există avertizări în țară dar nelocalizabile precis la coordonate
     if(_owStatus==='country-only' && _owCountryWide>0){
       box.style.display='flex';
-      box.innerHTML=`<div class="ow-item ow-info">`+
-        `<div class="ow-head"><span class="ow-ico">ℹ️</span><span>${_owCountryWide} avertizare/i activă/e în țară</span></div>`+
-        `<div class="ow-body">Există avertizări meteo oficiale active în această țară, dar nu pot fi localizate precis `+
-        `la coordonatele acestui loc (feed-ul nu include zone geografice detaliate). Verifică serviciul meteo național pentru detalii.</div>`+
-      `</div>`;
+      box.innerHTML=`<div class="ow-note">ℹ️ ${_owCountryWide} avertizare/i activă/e în țară (nelocalizabile precis aici)</div>`;
       return;
     }
-    // nimic de arătat (fără avertizări, sau status necunoscut/eroare rețea) → ascunde complet
     box.style.display='none'; box.innerHTML=''; return;
   }
 
-  // ── Avertizări locale confirmate ──
+  // ── Avertizări: DOAR iconițe compacte; click pe iconiță → expandează textul ANM complet ──
   box.style.display='flex';
-  box.innerHTML=_owCache.map((w,idx)=>{
+  const chips=_owCache.map((w,idx)=>{
+    const L=owLevelClass(w.level);
+    const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
+    const eticheta=typeNm||L.nm||'Avertizare';
+    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="Apasă pentru textul integral">`+
+      `<span class="ow-chip-ico">${L.ic}</span><span class="ow-chip-lbl">${esc(eticheta)}</span>`+
+      `<span class="ow-chip-caret" id="ow-caret-${idx}">▸</span></button>`;
+  }).join('');
+
+  const panels=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
     const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
-    // dacă descrierea e lungă (>180 car.), o ascundem sub un toggle „Vezi text integral"
-    const dShort=w.desc.length>180?w.desc.slice(0,177)+'…':w.desc;
-    const hasFull=w.desc.length>180;
-    return `<div class="ow-item ${L.cls}">`+
-      `<div class="ow-head"><span class="ow-ico">${L.ic}</span><span>${esc(titlu)}</span></div>`+
+    return `<div class="ow-panel ${L.cls}" id="ow-full-${idx}">`+
+      `<div class="ow-panel-head">${L.ic} <b>${esc(titlu)}</b></div>`+
       (w.area?`<div class="ow-meta">📍 ${esc(w.area)}</div>`:'')+
       (perioada?`<div class="ow-meta">🕒 ${perioada}</div>`:'')+
-      (w.desc?`<div class="ow-body">${esc(dShort)}</div>`:'')+
-      (hasFull?`<span class="ow-toggle" onclick="owToggle(${idx})">📄 Vezi textul integral</span>`+
-               `<div class="ow-full" id="ow-full-${idx}">${esc(w.desc)}</div>`:'')+
+      (w.desc?`<div class="ow-panel-body">${esc(w.desc)}</div>`:'<div class="ow-panel-body">(fără text detaliat în avertizare)</div>')+
     `</div>`;
   }).join('');
+
+  box.innerHTML=`<div class="ow-chips">${chips}</div>${panels}`;
 }
 function owToggle(idx){
   const f=el('ow-full-'+idx);if(!f)return;
   f.classList.toggle('open');
-  const t=f.previousElementSibling;
-  if(t&&t.classList.contains('ow-toggle'))
-    t.textContent=f.classList.contains('open')?'📄 Ascunde textul':'📄 Vezi textul integral';
+  const caret=el('ow-caret-'+idx);
+  if(caret)caret.textContent=f.classList.contains('open')?'▾':'▸';
 }
 // escape minimal pt text din surse externe
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
