@@ -323,7 +323,6 @@ let WIND_MIN=8, RAIN_MIN=4.0;              // praguri fizice (ajustabile): km/h 
 let P_LOW=40, P_HIGH=70;                   // praguri de PROBABILITATE (%) — ploaie, vânt, ger, caniculă
 let FROST_T=0, HEAT_T=35;                  // praguri fizice Pilon C (°C): ger ≤ FROST_T, caniculă ≥ HEAT_T
 const LS_KEY='meteo_settings_v2';          // localStorage: locație + praguri persistente
-const SYNC_KEY='meteo_widget_sync';        // canal bidirecțional widget↔MeteoDaneti
 const FCST_DAYS=14;   // orizont de fetch (extins pt. căutarea ploii viitoare >10l/mp); tabelul 7-zile rămâne la 7 (next7days())
 const ENS_DAYS=2;                          // ensemble doar pentru azi+mâine (acolo contează acuratețea)
 const ZILE_SCURT=['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
@@ -1091,38 +1090,47 @@ function regionKeywordsFor(){
 
 // Decide dacă o avertizare e relevantă pentru locația curentă (LAT/LON/regiune).
 // Funcționează pt ORICE locație europeană, inclusiv căutări libere (Paris, Roma etc.).
+// Bounding-box generos pentru județul Dolj (Daneti/Craiova/Raieti sunt toate aici)
+function inDoljBox(lat,lon){ return lat>=43.6&&lat<=44.6&&lon>=22.8&&lon<=24.5; }
+
 function warningMatchesLocation(w){
-  // 1) Cel mai precis, valabil universal: dacă avertizarea are poligon(e), verifică dacă
-  //    coordonatele tale exacte sunt în interior. Funcționează pt orice locație din lume.
+  // Verifică TOATE metodele disponibile și acceptă dacă ORICARE confirmă (nu se oprește la prima).
+  let hasGeoInfo=false;   // a avut vreo informație geografică pe care am putut-o evalua?
+
+  // 1) Poligon: dacă punctul tău e în interior ⇒ sigur te privește
   if(w.polys&&w.polys.length){
+    hasGeoInfo=true;
     for(const poly of w.polys){
       if(pointInPoly(LAT,LON,poly))return true;
     }
-    return false;  // are poligoane dar punctul tău nu e în niciunul ⇒ nu te privește
   }
-  // 2) Geocode EMMA_ID — doar pt locațiile fixe cunoscute (avem codurile regionale)
+  // 2) Geocode EMMA_ID: dacă vreun cod al regiunii tale se potrivește ⇒ te privește
   const myCodes=regionGeocodesFor();
   if(w.geocodes&&w.geocodes.length&&myCodes.length){
-    if(w.geocodes.some(g=>myCodes.includes(g)))return true;
-    return false;
+    hasGeoInfo=true;
+    if(w.geocodes.some(g=>myCodes.some(mc=>g.toUpperCase().includes(mc.toUpperCase()))))return true;
   }
-  // 3) Fallback pe nume zonă — doar pt locațiile fixe cunoscute (avem cuvinte-cheie)
+  // 3) Nume zonă (areaDesc): dacă conține un cuvânt-cheie al regiunii tale ⇒ te privește
   const kws=regionKeywordsFor();
   if(kws.length&&w.area){
+    hasGeoInfo=true;
     const a=w.area.toLowerCase();
     if(kws.some(k=>a.includes(k)))return true;
-    return false;
   }
-  // 4) CĂUTĂRI LIBERE fără poligon în avertizare (ex. feed care dă doar geocode/areaDesc):
-  //    nu putem stabili geografic dacă te privește. Marcăm avertizarea ca „la nivel de țară"
-  //    și o arătăm DOAR dacă nu există altă cale — dar semnalăm clar că e generală pe țară.
-  //    Pentru a NU inunda cu avertizări din toată țara, le excludem implicit, dar le numărăm
-  //    separat (vezi _owCountryWide) ca să putem afișa o notă „X avertizări active în țară".
-  if(_locKind==='search'){
-    w._countryWide=true;   // marcaj: nu putem localiza precis
-    return false;          // nu o afișăm ca avertizare locală
+  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/sud-vest ⇒ te privește
+  if((_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti'||inDoljBox(LAT,LON))&&w.area){
+    const a=w.area.toLowerCase();
+    if(/dolj|oltenia|craiova|sud-?vest|sud-?est|toată țara|toata tara|întreaga țară|intreaga tara|național|national/.test(a))return true;
   }
-  // 5) Locații fixe fără info geografică utilă ⇒ excludem (mai bine nimic decât irelevant)
+
+  // 5) Degradare sigură: dacă avertizarea NU avea nicio informație geografică evaluabilă
+  //    (nici poligon, nici geocode, nici areaDesc utilă), n-o putem localiza — o marcăm
+  //    „la nivel de țară" ca să o putem afișa cu notă, în loc s-o pierdem complet.
+  if(!hasGeoInfo){
+    w._countryWide=true;
+    return false;   // nu o afișăm ca locală, dar e numărată în _owCountryWide
+  }
+  // avea info geografică dar nu s-a potrivit ⇒ chiar nu te privește
   return false;
 }
 
@@ -1617,6 +1625,7 @@ function applyResults(results){
     else lse.textContent=`🧠 corecție activă: ${ls.active} ore`+(ls.avgT!=null?` · eroare medie ±${ls.avgT}°`:'');
   }
   el('flash').textContent='🎨 culori reîmprospătate';
+  if(typeof applyDynamicBg==='function')applyDynamicBg();   // fundal nou la fiecare actualizare
   const er=valid.find(r=>r.elevation!=null);
   _resolvedElev=er?er.elevation:null;
   const elevTxt=_resolvedElev!=null
@@ -1677,11 +1686,9 @@ function setRefreshInterval(minutes){
   REFRESH_MS=m*60*1000;
   try{localStorage.setItem(REFRESH_KEY,String(m));}catch(e){}
   if(_rv)clearInterval(_rv);
-  _rv=setInterval(loadWeather,REFRESH_MS);
-  startCdown();
+  _rv=setInterval(loadWeather,REFRESH_MS);   // repornește timerul cu noul interval
+  startCdown();                              // resincronizează numărătoarea inversă
   const sel=el('refresh-sel');if(sel)sel.value=String(m);
-  // sincronizează intervalul cu widget-ul
-  saveLastLoc();
 }
 function restoreRefreshInterval(){
   let m=15;
@@ -1878,20 +1885,10 @@ function clearCards(){el('body-azi').innerHTML='Se încarcă...';el('body-maine'
 
 // Persistența setărilor (locație + praguri) în localStorage; degradează grațios dacă e blocat
 function saveLastLoc(){
-  const data={
+  try{localStorage.setItem(LS_KEY,JSON.stringify({
     loc:{lat:LAT,lon:LON,tz:TZ,name:LOC_NAME,elev:ELEV_OVERRIDE,kind:_locKind},
     thr:{RAIN_MIN,WIND_MIN,FROST_T,HEAT_T,P_LOW,P_HIGH}
-  };
-  try{
-    localStorage.setItem(LS_KEY,JSON.stringify(data));
-    // notifică widget-ul instant (storage event pe SYNC_KEY) cu locație+surse curente
-    localStorage.setItem(SYNC_KEY,JSON.stringify({
-      ...data,
-      src:{bestMode:_bestMode, selected:[...selectedSources]},
-      refresh:Math.round(REFRESH_MS/60000),
-      ts:Date.now()
-    }));
-  }catch(e){}
+  }));}catch(e){}
 }
 function restoreLastLoc(){
   try{
@@ -1994,6 +1991,59 @@ if(_bestMode)applyBestForLocation();   // Best pentru locația restaurată
 el('locname').textContent='📍 '+LOC_NAME;
 syncElevInput();syncThrInputs();updateFixedBtns();
 
+// ── Fundal dinamic sezonier (gradiente bogate, randomizate, cu lizibilitate garantată) ──
+// Paletă pe anotimp × moment al zilei. Overlay-ul întunecat de deasupra (în CSS body::before)
+// asigură că textul alb rămâne mereu lizibil indiferent de gradient.
+function seasonOf(mon){
+  if(mon>=3&&mon<=5)return 'spring';
+  if(mon>=6&&mon<=8)return 'summer';
+  if(mon>=9&&mon<=11)return 'autumn';
+  return 'winter';
+}
+function dayPartOf(h){
+  if(h>=5&&h<8)return 'dawn';
+  if(h>=8&&h<18)return 'day';
+  if(h>=18&&h<21)return 'dusk';
+  return 'night';
+}
+// Palete: fiecare e o listă de gradiente armonioase, întunecate îndeajuns cât textul alb să iasă bine
+const BG_PALETTES={
+  spring:{
+    dawn:['linear-gradient(165deg,#14202d,#233930)','linear-gradient(160deg,#1c2837,#2d4639)'],
+    day :['linear-gradient(165deg,#111c2d,#183c2d)','linear-gradient(150deg,#142333,#1e4431)'],
+    dusk:['linear-gradient(165deg,#201c31,#392d3f)','linear-gradient(160deg,#181c2b,#302538)'],
+    night:['linear-gradient(165deg,#070f18,#0e1c15)','linear-gradient(160deg,#09121d,#111f17)'],
+  },
+  summer:{
+    dawn:['linear-gradient(165deg,#172030,#302d1f)','linear-gradient(160deg,#1c2738,#39331f)'],
+    day :['linear-gradient(165deg,#0e1f31,#142d3c)','linear-gradient(150deg,#112539,#183544)'],
+    dusk:['linear-gradient(165deg,#231c2b,#3f2b20)','linear-gradient(160deg,#1f1c30,#39281c)'],
+    night:['linear-gradient(165deg,#070f18,#0f1722)','linear-gradient(160deg,#09111a,#0c1523)'],
+  },
+  autumn:{
+    dawn:['linear-gradient(165deg,#201c27,#342820)','linear-gradient(160deg,#1c1725,#392b1d)'],
+    day :['linear-gradient(165deg,#171c2b,#2d251c)','linear-gradient(150deg,#1a2031,#372b1d)'],
+    dusk:['linear-gradient(165deg,#231a25,#3f2b20)','linear-gradient(160deg,#1f1722,#3c2a1c)'],
+    night:['linear-gradient(165deg,#090c12,#15110f)','linear-gradient(160deg,#0a0e18,#181214)'],
+  },
+  winter:{
+    dawn:['linear-gradient(165deg,#141c2a,#202d3c)','linear-gradient(160deg,#172031,#273543)'],
+    day :['linear-gradient(165deg,#111d2e,#1c3143)','linear-gradient(150deg,#142335,#20384a)'],
+    dusk:['linear-gradient(165deg,#171c2b,#282b3c)','linear-gradient(160deg,#141828,#232838)'],
+    night:['linear-gradient(165deg,#060a12,#0c121c)','linear-gradient(160deg,#070c12,#0e151f)'],
+  },
+};
+function applyDynamicBg(){
+  try{
+    const dk0=dkNow(),h=hNow();
+    const s=seasonOf(dMon(dk0)), dp=dayPartOf(h);
+    const opts=(BG_PALETTES[s]&&BG_PALETTES[s][dp])||['linear-gradient(165deg,#050a12,#091826)'];
+    const g=opts[Math.floor(Math.random()*opts.length)];
+    document.body.style.background=g;
+    document.body.style.backgroundAttachment='fixed';
+  }catch(e){}
+}
+
 // Ceas live (sus-dreapta), în fusul orar al locației
 function tickClock(){
   const ec=el('clock');if(!ec)return;
@@ -2002,60 +2052,11 @@ function tickClock(){
 }
 tickClock();setInterval(tickClock,1000);
 
+applyDynamicBg();
 restoreRefreshInterval();   // restaurează intervalul ales anterior (din localStorage) înainte de a porni timerul
 loadWeather();
 _rv=setInterval(loadWeather,REFRESH_MS);
 initNotifStatus();
-
-// ── Sincronizare bidirecțională cu MeteoWidget ──────────────────────────
-// Ascultă schimbările din widget (locație/surse/refresh). Storage event se
-// declanșează DOAR în alte tab-uri/ferestre — nu în cea care a scris.
-window.addEventListener('storage',e=>{
-  if(e.key!==SYNC_KEY||!e.newValue)return;
-  try{
-    const o=JSON.parse(e.newValue);
-    if(!o||Math.abs(Date.now()-(o.ts||0))>30000)return;  // ignoră dacă mai vechi de 30s
-    let changed=false;
-    // actualizează locația dacă e diferită
-    if(o.loc&&typeof o.loc.lat==='number'&&(o.loc.lat!==LAT||o.loc.lon!==LON)){
-      LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;LOC_NAME=o.loc.name||LOC_NAME;
-      ELEV_OVERRIDE=o.loc.elev!=null?o.loc.elev:null;
-      _locKind=o.loc.kind||'search';
-      el('locname').textContent='📍 '+LOC_NAME;
-      syncElevInput();updateFixedBtns();changed=true;
-    }
-    // actualizează pragurile dacă s-au schimbat
-    if(o.thr){
-      const T=o.thr;
-      if(typeof T.RAIN_MIN==='number')RAIN_MIN=T.RAIN_MIN;
-      if(typeof T.WIND_MIN==='number')WIND_MIN=T.WIND_MIN;
-      if(typeof T.FROST_T==='number')FROST_T=T.FROST_T;
-      if(typeof T.HEAT_T==='number')HEAT_T=T.HEAT_T;
-      if(typeof T.P_LOW==='number')P_LOW=T.P_LOW;
-      if(typeof T.P_HIGH==='number')P_HIGH=T.P_HIGH;
-      syncThrInputs();changed=true;
-    }
-    // actualizează surse
-    if(o.src){
-      if(o.src.bestMode){
-        _bestMode=true;applyBestForLocation();
-      } else if(Array.isArray(o.src.selected)){
-        _bestMode=false;
-        selectedSources=new Set(o.src.selected);
-      }
-      renderModels(_lastResults||[]);changed=true;
-    }
-    // actualizează intervalul de refresh
-    if(o.refresh&&typeof o.refresh==='number'){
-      const m=Math.max(15,Math.min(180,o.refresh));
-      if(m*60*1000!==REFRESH_MS)setRefreshInterval(m);
-    }
-    if(changed){
-      if(_bestMode)applyBestForLocation();
-      isFirst=true;loadWeather();
-    }
-  }catch(er){}
-});
 
 // Înregistrare service worker (necesar pentru instalabilitate completă pe Android/Chrome;
 // pe iPhone funcționează oricum prin meta-tagurile apple-mobile-web-app de mai sus)
