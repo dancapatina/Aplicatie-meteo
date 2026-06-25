@@ -815,6 +815,7 @@ async function loadWidget(){
   render(hours);
   flashCard();
   cycleClockColor();   // schimbă culoarea ceasului — confirmă vizual că refresh-ul a funcționat
+  applyDynamicBg();    // fundal dinamic nou la fiecare actualizare
   refreshMainAppLink();
   checkNotifications(hours);
   fetchOfficialWarnings();     // avertizări oficiale — asincron izolat, nu blochează prognoza
@@ -1043,38 +1044,47 @@ function regionKeywordsFor(){
   return [];  // căutări libere: nu ghicim cuvinte-cheie
 }
 
+// Bounding-box generos pentru județul Dolj (Daneti/Craiova/Raieti sunt toate aici)
+function inDoljBox(lat,lon){ return lat>=43.6&&lat<=44.6&&lon>=22.8&&lon<=24.5; }
+
 function warningMatchesLocation(w){
-  // 1) Cel mai precis, valabil universal: dacă avertizarea are poligon(e), verifică dacă
-  //    coordonatele tale exacte sunt în interior. Funcționează pt orice locație din lume.
+  // Verifică TOATE metodele disponibile și acceptă dacă ORICARE confirmă (nu se oprește la prima).
+  let hasGeoInfo=false;   // a avut vreo informație geografică pe care am putut-o evalua?
+
+  // 1) Poligon: dacă punctul tău e în interior ⇒ sigur te privește
   if(w.polys&&w.polys.length){
+    hasGeoInfo=true;
     for(const poly of w.polys){
       if(pointInPoly(LAT,LON,poly))return true;
     }
-    return false;  // are poligoane dar punctul tău nu e în niciunul ⇒ nu te privește
   }
-  // 2) Geocode EMMA_ID — doar pt locațiile fixe cunoscute (avem codurile regionale)
+  // 2) Geocode EMMA_ID: dacă vreun cod al regiunii tale se potrivește ⇒ te privește
   const myCodes=regionGeocodesFor();
   if(w.geocodes&&w.geocodes.length&&myCodes.length){
-    if(w.geocodes.some(g=>myCodes.includes(g)))return true;
-    return false;
+    hasGeoInfo=true;
+    if(w.geocodes.some(g=>myCodes.some(mc=>g.toUpperCase().includes(mc.toUpperCase()))))return true;
   }
-  // 3) Fallback pe nume zonă — doar pt locațiile fixe cunoscute (avem cuvinte-cheie)
+  // 3) Nume zonă (areaDesc): dacă conține un cuvânt-cheie al regiunii tale ⇒ te privește
   const kws=regionKeywordsFor();
   if(kws.length&&w.area){
+    hasGeoInfo=true;
     const a=w.area.toLowerCase();
     if(kws.some(k=>a.includes(k)))return true;
-    return false;
   }
-  // 4) CĂUTĂRI LIBERE fără poligon în avertizare (ex. feed care dă doar geocode/areaDesc):
-  //    nu putem stabili geografic dacă te privește. Marcăm avertizarea ca „la nivel de țară"
-  //    și o arătăm DOAR dacă nu există altă cale — dar semnalăm clar că e generală pe țară.
-  //    Pentru a NU inunda cu avertizări din toată țara, le excludem implicit, dar le numărăm
-  //    separat (vezi _owCountryWide) ca să putem afișa o notă „X avertizări active în țară".
-  if(_locKind==='search'){
-    w._countryWide=true;   // marcaj: nu putem localiza precis
-    return false;          // nu o afișăm ca avertizare locală
+  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/sud-vest ⇒ te privește
+  if((_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti'||inDoljBox(LAT,LON))&&w.area){
+    const a=w.area.toLowerCase();
+    if(/dolj|oltenia|craiova|sud-?vest|sud-?est|toată țara|toata tara|întreaga țară|intreaga tara|național|national/.test(a))return true;
   }
-  // 5) Locații fixe fără info geografică utilă ⇒ excludem (mai bine nimic decât irelevant)
+
+  // 5) Degradare sigură: dacă avertizarea NU avea nicio informație geografică evaluabilă
+  //    (nici poligon, nici geocode, nici areaDesc utilă), n-o putem localiza — o marcăm
+  //    „la nivel de țară" ca să o putem afișa cu notă, în loc s-o pierdem complet.
+  if(!hasGeoInfo){
+    w._countryWide=true;
+    return false;   // nu o afișăm ca locală, dar e numărată în _owCountryWide
+  }
+  // avea info geografică dar nu s-a potrivit ⇒ chiar nu te privește
   return false;
 }
 
@@ -1280,6 +1290,60 @@ function flashCard(){
   setTimeout(()=>c.classList.remove('flashing'),1500);
 }
 
+// ── Fundal dinamic sezonier (gradiente bogate, randomizate, cu lizibilitate garantată) ──
+// Paletă pe anotimp × moment al zilei. Overlay-ul întunecat de deasupra (în CSS body::before)
+// asigură că textul alb rămâne mereu lizibil indiferent de gradient.
+function seasonOf(mon){
+  if(mon>=3&&mon<=5)return 'spring';
+  if(mon>=6&&mon<=8)return 'summer';
+  if(mon>=9&&mon<=11)return 'autumn';
+  return 'winter';
+}
+function dayPartOf(h){
+  if(h>=5&&h<8)return 'dawn';
+  if(h>=8&&h<18)return 'day';
+  if(h>=18&&h<21)return 'dusk';
+  return 'night';
+}
+// Palete: fiecare e o listă de gradiente armonioase, întunecate îndeajuns cât textul alb să iasă bine
+const BG_PALETTES={
+  spring:{
+    dawn:['linear-gradient(165deg,#14202d,#233930)','linear-gradient(160deg,#1c2837,#2d4639)'],
+    day :['linear-gradient(165deg,#111c2d,#183c2d)','linear-gradient(150deg,#142333,#1e4431)'],
+    dusk:['linear-gradient(165deg,#201c31,#392d3f)','linear-gradient(160deg,#181c2b,#302538)'],
+    night:['linear-gradient(165deg,#070f18,#0e1c15)','linear-gradient(160deg,#09121d,#111f17)'],
+  },
+  summer:{
+    dawn:['linear-gradient(165deg,#172030,#302d1f)','linear-gradient(160deg,#1c2738,#39331f)'],
+    day :['linear-gradient(165deg,#0e1f31,#142d3c)','linear-gradient(150deg,#112539,#183544)'],
+    dusk:['linear-gradient(165deg,#231c2b,#3f2b20)','linear-gradient(160deg,#1f1c30,#39281c)'],
+    night:['linear-gradient(165deg,#070f18,#0f1722)','linear-gradient(160deg,#09111a,#0c1523)'],
+  },
+  autumn:{
+    dawn:['linear-gradient(165deg,#201c27,#342820)','linear-gradient(160deg,#1c1725,#392b1d)'],
+    day :['linear-gradient(165deg,#171c2b,#2d251c)','linear-gradient(150deg,#1a2031,#372b1d)'],
+    dusk:['linear-gradient(165deg,#231a25,#3f2b20)','linear-gradient(160deg,#1f1722,#3c2a1c)'],
+    night:['linear-gradient(165deg,#090c12,#15110f)','linear-gradient(160deg,#0a0e18,#181214)'],
+  },
+  winter:{
+    dawn:['linear-gradient(165deg,#141c2a,#202d3c)','linear-gradient(160deg,#172031,#273543)'],
+    day :['linear-gradient(165deg,#111d2e,#1c3143)','linear-gradient(150deg,#142335,#20384a)'],
+    dusk:['linear-gradient(165deg,#171c2b,#282b3c)','linear-gradient(160deg,#141828,#232838)'],
+    night:['linear-gradient(165deg,#060a12,#0c121c)','linear-gradient(160deg,#070c12,#0e151f)'],
+  },
+};
+function applyDynamicBg(){
+  try{
+    const dk0=dkNow(),h=hNow();
+    const s=seasonOf(dMon(dk0)), dp=dayPartOf(h);
+    const opts=(BG_PALETTES[s]&&BG_PALETTES[s][dp])||['linear-gradient(165deg,#050a12,#091826)'];
+    const g=opts[Math.floor(Math.random()*opts.length)];
+    document.body.style.background=g;
+    document.body.style.backgroundAttachment='fixed';
+  }catch(e){}
+}
+
+
 // ── Ceas live în widget ──────────────────────────────────────────────────
 // Culori ceas — se rotesc la fiecare actualizare ca să confirme vizual refresh-ul
 const CLOCK_COLORS=['#7dd3fc','#6ee7b7','#fbbf24','#f9a8d4','#a5b4fc','#fb923c','#34d399','#38bdf8','#e879f9','#facc15'];
@@ -1342,6 +1406,7 @@ function pickWidgetLoc(idx){
 // ── Schimbă intervalul de refresh + actualizează imediat + notifică MeteoDaneti ──
 restoreRefreshInterval();
 refreshMainAppLink();
+applyDynamicBg();
 loadWidget();
 _refreshTimer=setInterval(loadWidget,REFRESH_MS);
 
