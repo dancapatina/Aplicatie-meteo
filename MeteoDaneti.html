@@ -24,6 +24,10 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px}
 .logo{font-size:1.5rem;font-weight:800}
 .sub{color:#7c93ad;font-size:.82rem;margin-top:2px}
+.locname-big{margin-top:4px;font-size:1.28rem;font-weight:800;line-height:1.25;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.locname-big .loc-city{color:#7dd3fc}
+.locname-big .loc-elev{color:#fbbf24;font-size:1.06rem;font-weight:700}
 .coord{color:#5a7390;font-size:.72rem;margin-top:1px}
 .hdr-r{text-align:right;font-size:.78rem;color:#8aa0b8;line-height:1.7}
 .btn{background:#1d4ed8;border:none;color:#fff;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700}
@@ -87,14 +91,15 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .sec{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:10px}
 .sec-title{font-weight:800;font-size:1.02rem;margin-bottom:9px}
 .wk{width:100%;border-collapse:collapse;font-size:1.04rem;table-layout:fixed}
-.wk th,.wk td{padding:11px 4px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05)}
-.wk thead th{background:rgba(255,255,255,.07);font-size:.95rem;color:#cdd9e6;font-weight:800;border-radius:4px}
+.wk th,.wk td{padding:7px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05)}
+.wk thead th{background:rgba(255,255,255,.07);font-size:.82rem;color:#cdd9e6;font-weight:800;border-radius:4px}
 .wk thead th.today{background:rgba(37,99,235,.28);color:#fff}
-.wk .rowlbl{text-align:left;color:#9fb3c8;font-size:.82rem;font-weight:700;white-space:normal;width:62px;line-height:1.2;padding-left:2px}
+.wk .rowlbl{text-align:left;color:#9fb3c8;font-size:.74rem;font-weight:700;white-space:normal;width:56px;line-height:1.2;padding-left:2px}
 .wk td.today{background:rgba(37,99,235,.10)}
-.wk .arrow{font-size:1.4rem;display:inline-block;line-height:1}
-.wk .dir{color:#9fb3c8;font-size:.86rem}
-.wk .big{font-size:1.32rem;font-weight:800}
+.wk .arrow{font-size:1.05rem;display:inline-block;line-height:1}
+.wk .dir{color:#9fb3c8;font-size:.74rem}
+.wk .big{font-size:1.0rem;font-weight:800}
+.wk .unit{font-size:.68rem}
 .tlbl{display:flex;flex-direction:column;justify-content:space-between;min-height:3em}
 .tlbl-edge{font-size:.74rem;color:#7c93ad;font-weight:700}
 .tlbl-mid{font-weight:800;color:#cdd9e6}
@@ -140,13 +145,13 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 #offwarn{max-width:560px;margin:9px 0 4px;display:none;flex-direction:column;gap:6px}
 /* Iconițe compacte (chips) — ocupă minim, click pe ele expandează textul */
 .ow-chips{display:flex;flex-wrap:wrap;gap:6px}
-.ow-chip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid;
-  border-radius:20px;padding:5px 12px;font-weight:800;font-size:.86rem;line-height:1;
+.ow-chip{display:inline-flex;align-items:center;gap:4px;cursor:pointer;border:1px solid;
+  border-radius:14px;padding:3px 8px;font-weight:700;font-size:.7rem;line-height:1;
   font-family:inherit;animation:owPulse 1.6s ease-out}
 @keyframes owPulse{0%{box-shadow:0 0 0 rgba(255,255,255,0)}40%{box-shadow:0 0 14px rgba(255,255,255,.3)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
-.ow-chip-ico{font-size:1.15rem;line-height:1}
+.ow-chip-ico{font-size:.92rem;line-height:1}
 .ow-chip-lbl{white-space:nowrap}
-.ow-chip-caret{font-size:.72rem;opacity:.8}
+.ow-chip-caret{font-size:.62rem;opacity:.8}
 .ow-chip:active{transform:scale(.96)}
 /* Panoul cu textul ANM complet — ascuns implicit, apare la click pe chip */
 .ow-panel{display:none;border:1px solid;border-radius:11px;padding:11px 14px;flex-direction:column;gap:5px}
@@ -181,13 +186,13 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <div class="hdr">
   <div>
     <div class="logo">🌦 MeteoLocal <span id="clock" class="clock"></span></div>
-    <div class="sub" id="locname">📍 Daneti, Dolj</div>
+    <div class="locname-big" id="locname"><span class="loc-city">📍 Daneti</span></div>
     <div class="coord" id="coord">43.983°N · 24.050°E</div>
     <div id="offwarn"></div>
     <div id="nowcast" class="nowcast" style="display:none"></div>
     <div class="locbar">
       <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" onkeydown="locKey(event)" autocomplete="off">
-      <button class="btn" onclick="doGeoSearch()">🔍 Caută</button>
+      <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
       <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()">📡 Locația curentă</button>
       <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
       <button class="btn loc-fixed active" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
@@ -201,11 +206,11 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
     <div id="cdown"></div>
     <div id="flash"></div>
     <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;justify-content:flex-end">
-      <button class="btn" id="btn-now" onclick="forceLoad()">↺ Actualizează</button>
-      <button class="btn" id="btn-notif" onclick="requestNotif()" style="background:#065f46">🔔 Notificări</button>
+      <button class="btn" id="btn-now" onclick="forceLoad()" data-i18n="refresh">↺ Actualizează</button>
+      <button class="btn" id="btn-notif" onclick="requestNotif()" style="background:#065f46" data-i18n="notif">🔔 Notificări</button>
     </div>
     <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
-      <label style="font-size:.74rem;color:#9fb3c8;font-weight:600">⏲ Actualizare la:
+      <label style="font-size:.74rem;color:#9fb3c8;font-weight:600"><span data-i18n="refresh_at">⏲ Actualizare la:</span>
         <select id="refresh-sel" onchange="setRefreshInterval(this.value)"
           style="background:#11202f;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 6px;font-size:.76rem;font-weight:700;margin-left:4px">
           <option value="15">15 min</option><option value="30">30 min</option>
@@ -214,6 +219,16 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
           <option value="105">1 h 45</option><option value="120">2 h</option>
           <option value="135">2 h 15</option><option value="150">2 h 30</option>
           <option value="165">2 h 45</option><option value="180">3 h</option>
+        </select>
+      </label>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+      <label style="font-size:.74rem;color:#9fb3c8;font-weight:600"><span data-i18n="lang_label">🌐 Limbă:</span>
+        <select id="lang-sel" onchange="setLang(this.value)"
+          style="background:#11202f;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 6px;font-size:.76rem;font-weight:700;margin-left:4px">
+          <option value="ro">Română</option><option value="en">English</option>
+          <option value="fr">Français</option><option value="es">Español</option>
+          <option value="de">Deutsch</option><option value="it">Italiano</option>
         </select>
       </label>
     </div>
@@ -229,7 +244,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 </div>
 <div id="ban-err" class="ban err" style="display:none">
   <span id="err-txt"></span>
-  <button class="btn" onclick="forceLoad()">↺ Retry</button>
+  <button class="btn" onclick="forceLoad()" data-i18n="retry">↺ Retry</button>
 </div>
 
 <!-- PRAGURI AJUSTABILE -->
@@ -271,13 +286,13 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 
 <!-- 7 ZILE -->
 <div class="sec">
-  <div class="sec-title">📅 Prognoză 7 zile (de azi)</div>
+  <div class="sec-title" data-i18n="week7">📅 Prognoză 7 zile (de azi)</div>
   <div id="wk-body" style="color:#5a7390;font-size:.9rem">Se încarcă...</div>
 </div>
 
 <!-- BUTON ORAR -->
 <div class="sec">
-  <button class="tog" id="tog-h" onclick="toggleHourly()">🕐 Arată valorile orare (7 zile)</button>
+  <button class="tog" id="tog-h" onclick="toggleHourly()" data-i18n="show_hourly">🕐 Arată valorile orare (7 zile)</button>
   <div id="htbl" style="display:none"></div>
 </div>
 
@@ -950,8 +965,10 @@ const OW_TYPES={1:'Vânt',2:'Ninsoare/Gheață',3:'Furtună',4:'Ceață',5:'Cani
 
 let _owCache=[];       // avertizările curente afișate
 let _owFetchedFor='';  // pt ce țară am încărcat ultima dată
-let _owStatus='';      // '' | 'non-europe' | 'no-warnings' | 'ok' | 'country-only'
+let _owStatus='';      // '' | 'non-europe' | 'no-warnings' | 'ok' | 'country-only' | 'other-regions' | 'proxy-fail'
 let _owCountryWide=0;  // câte avertizări active sunt în țară dar nelocalizabile la locația curentă
+let _owAllCount=0;     // câte avertizări totale sunt în țară (toate regiunile)
+let _owErrDetail='';   // detaliu eroare pt diagnostic
 
 // Determină dacă o locație (după fus orar) e în zona de acoperire Meteoalarm (Europa)
 function isEuropeanTZ(tz){ return !!tz && tz.startsWith('Europe/'); }
@@ -960,45 +977,48 @@ async function fetchOfficialWarnings(){
   const country=countryFromTZ(TZ);
   const box=el('offwarn');if(!box)return;
 
-  // ── OPȚIUNEA 2: locație în afara acoperirii Meteoalarm (non-Europa: Tokyo, Lima, Seattle...) ──
   if(!country){
-    _owCache=[];
-    _owCountryWide=0;
-    _owStatus='non-europe';   // Meteoalarm acoperă doar Europa
-    renderOfficialWarnings();
-    return;
+    _owCache=[]; _owCountryWide=0; _owStatus='non-europe';
+    renderOfficialWarnings(); return;
   }
 
-  // Feed CAP Atom oficial Meteoalarm, per țară. Browserul nu-l poate lua direct (fără CORS),
-  // deci trecem printr-un proxy CORS public. Degradare grațioasă dacă pică.
   const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
+  // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+    u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+    u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,  // întoarce JSON cu .contents
   ];
 
-  for(const wrap of proxies){
+  let lastErr='';
+  for(let pi=0;pi<proxies.length;pi++){
+    const wrap=proxies[pi];
     try{
-      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),12000);
+      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),13000);
       const r=await fetch(wrap(feed),{signal:ctrl.signal});
       clearTimeout(tid);
-      if(!r.ok)continue;
-      const txt=await r.text();
+      if(!r.ok){lastErr='HTTP '+r.status;continue;}
+      let txt=await r.text();
+      // allorigins /get întoarce JSON {contents:"..."} — extragem
+      if(pi===4){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
+      if(!txt||txt.length<50){lastErr='răspuns gol';continue;}
       const parsed=parseMeteoalarmAtom(txt);
-      // resetez marcajele de „country-wide" înainte de filtrare
       parsed.forEach(w=>{w._countryWide=false;});
-      const local=parsed.filter(warningMatchesLocation);   // doar cele care acoperă locația curentă
+      const local=parsed.filter(warningMatchesLocation);
       _owCache=local;
-      // numără câte avertizări active există în țară dar nu pot fi localizate (căutări libere)
       _owCountryWide=parsed.filter(w=>w._countryWide).length;
       _owFetchedFor=country;
-      _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : 'no-warnings');
+      _owAllCount=parsed.length;   // câte avertizări sunt în țară (total)
+      _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : (parsed.length>0?'other-regions':'no-warnings'));
       renderOfficialWarnings();
       return;
-    }catch(e){ /* încearcă următorul proxy */ }
+    }catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':'rețea'; }
   }
-  // toate proxy-urile au eșuat — nu blocăm aplicația, doar nu afișăm avertizări oficiale
-  if(_owFetchedFor!==country){ _owCache=[]; _owStatus=''; renderOfficialWarnings(); }
+  // toate proxy-urile au eșuat
+  _owCache=[]; _owStatus='proxy-fail'; _owErrDetail=lastErr;
+  renderOfficialWarnings();
 }
 
 // Parsează feed-ul Atom Meteoalarm. Fiecare <entry> conține <cap:event>, <cap:effective>,
@@ -1155,10 +1175,10 @@ function warningMatchesLocation(w){
     const a=w.area.toLowerCase();
     if(kws.some(k=>a.includes(k)))return true;
   }
-  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/sud-vest ⇒ te privește
+  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/regiuni vecine ⇒ te privește
   if((_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti'||inDoljBox(LAT,LON))&&w.area){
     const a=w.area.toLowerCase();
-    if(/dolj|oltenia|craiova|sud-?vest|sud-?est|toată țara|toata tara|întreaga țară|intreaga tara|național|national/.test(a))return true;
+    if(/dolj|oltenia|craiova|gorj|mehedin|olt\b|vâlcea|valcea|sud-?vest|sud-?est|muntenia|cea mai mare parte|toată țara|toata tara|întreaga țară|intreaga tara|național|national|majoritatea|cea mai mare parte a țării|toate regiunile/.test(a))return true;
   }
 
   // 5) Degradare sigură: dacă avertizarea NU avea nicio informație geografică evaluabilă
@@ -1191,6 +1211,16 @@ function renderOfficialWarnings(){
     if(_owStatus==='country-only' && _owCountryWide>0){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">ℹ️ ${_owCountryWide} avertizare/i activă/e în țară (nelocalizabile precis aici)</div>`;
+      return;
+    }
+    if(_owStatus==='other-regions' && _owAllCount>0){
+      box.style.display='flex';
+      box.innerHTML=`<div class="ow-note">✅ ${_owAllCount} avertizări active în țară, dar niciuna pentru zona ta acum.</div>`;
+      return;
+    }
+    if(_owStatus==='proxy-fail'){
+      box.style.display='flex';
+      box.innerHTML=`<div class="ow-note">⚠️ Avertizările oficiale momentan inaccesibile (${esc(_owErrDetail||'rețea')}). Se reîncearcă automat.</div>`;
       return;
     }
     box.style.display='none'; box.innerHTML=''; return;
@@ -1260,8 +1290,8 @@ function renderNowcast(hours,cur){
   }
   // linia de ploaie — doar dacă există șanse (≠0)
   if(Math.max(rp1,rp2)>0){
-    L.push(`<span>${pl.i} ${pl.t}: <b>${nr1(p1)} mm</b> · <b class="${hi(rp1)}">${rp1}%</b> șanse în 1 oră `+
-      `<span class="sep" style="color:#5a7390">/</span> <b>${nr1(p2)} mm</b> · <b class="${hi(rp2)}">${rp2}%</b> în 2 ore</span>`);
+    L.push(`<span>${pl.i} ${pl.t}: <b>${nr1(p1)} l/mp</b> · <b class="${hi(rp1)}">${rp1}%</b> șanse în 1 oră `+
+      `<span class="sep" style="color:#5a7390">/</span> <b>${nr1(p2)} l/mp</b> · <b class="${hi(rp2)}">${rp2}%</b> în 2 ore</span>`);
   }
   // linia de vânt — doar dacă există șanse (≠0)
   if(Math.max(wp1,wp2)>0){
@@ -1350,6 +1380,97 @@ function renderDayCard(elId,dk,hours,refHour){
   </div>
   ${chtml}`;
   const e=el(elId);e.innerHTML=html;e.classList.remove('flash-up');void e.offsetWidth;e.classList.add('flash-up');
+}
+
+// Afișează localitatea (nume scurt) + altitudinea, mare și colorat, în antet
+function updateLocnameDisplay(){
+  const elc=el('locname');if(!elc)return;
+  const city=LOC_NAME.split(',')[0].trim();
+  const elev=(_resolvedElev!=null)?Math.round(_resolvedElev):(ELEV_OVERRIDE!=null?Math.round(ELEV_OVERRIDE):null);
+  elc.innerHTML=`<span class="loc-city">📍 ${city}</span>`+
+    (elev!=null?`<span class="loc-elev">⛰ ${elev} m</span>`:'');
+}
+
+// ── Sistem de localizare (i18n): RO/EN/FR/ES/DE/IT ──────────────────────────
+const I18N={
+  ro:{lang_name:'Română',search:'🔍 Caută',search_ph:'Caută localitate (oraș, sat)…',
+    refresh:'↺ Actualizează',notif:'🔔 Notificări',refresh_at:'⏲ Actualizare la:',
+    retry:'↺ Reîncearcă',week7:'📅 Prognoză 7 zile (de azi)',
+    show_hourly:'🕐 Arată valorile orare (7 zile)',hide_hourly:'🕐 Ascunde valorile orare (7 zile)',
+    sources:'📡 Surse',best:'⭐ Best',all:'Toate',none:'Niciuna',
+    lang_label:'🌐 Limbă:',thresholds:'⚙️ Praguri alerte',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Vânt',dew:'🌫 Rouă',
+    max:'Max',min:'Min',today:'Astăzi',tomorrow:'Mâine'},
+  en:{lang_name:'English',search:'🔍 Search',search_ph:'Search location (city, village)…',
+    refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
+    retry:'↺ Retry',week7:'📅 7-day forecast (from today)',
+    show_hourly:'🕐 Show hourly values (7 days)',hide_hourly:'🕐 Hide hourly values (7 days)',
+    sources:'📡 Sources',best:'⭐ Best',all:'All',none:'None',
+    lang_label:'🌐 Language:',thresholds:'⚙️ Alert thresholds',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Wind',dew:'🌫 Dew',
+    max:'Max',min:'Min',today:'Today',tomorrow:'Tomorrow'},
+  fr:{lang_name:'Français',search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)…',
+    refresh:'↺ Actualiser',notif:'🔔 Notifications',refresh_at:'⏲ Actualiser :',
+    retry:'↺ Réessayer',week7:'📅 Prévisions 7 jours (dès aujourd’hui)',
+    show_hourly:'🕐 Afficher les valeurs horaires (7 jours)',hide_hourly:'🕐 Masquer les valeurs horaires (7 jours)',
+    sources:'📡 Sources',best:'⭐ Best',all:'Toutes',none:'Aucune',
+    lang_label:'🌐 Langue :',thresholds:'⚙️ Seuils d’alerte',
+    temp:'🌡 Temp',precip:'💧 Précip.',wind:'💨 Vent',dew:'🌫 Rosée',
+    max:'Max',min:'Min',today:'Aujourd’hui',tomorrow:'Demain'},
+  es:{lang_name:'Español',search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)…',
+    refresh:'↺ Actualizar',notif:'🔔 Notificaciones',refresh_at:'⏲ Actualizar cada:',
+    retry:'↺ Reintentar',week7:'📅 Pronóstico 7 días (desde hoy)',
+    show_hourly:'🕐 Mostrar valores horarios (7 días)',hide_hourly:'🕐 Ocultar valores horarios (7 días)',
+    sources:'📡 Fuentes',best:'⭐ Best',all:'Todas',none:'Ninguna',
+    lang_label:'🌐 Idioma:',thresholds:'⚙️ Umbrales de alerta',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Viento',dew:'🌫 Rocío',
+    max:'Máx',min:'Mín',today:'Hoy',tomorrow:'Mañana'},
+  de:{lang_name:'Deutsch',search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)…',
+    refresh:'↺ Aktualisieren',notif:'🔔 Mitteilungen',refresh_at:'⏲ Aktualisieren:',
+    retry:'↺ Wiederholen',week7:'📅 7-Tage-Vorhersage (ab heute)',
+    show_hourly:'🕐 Stündliche Werte anzeigen (7 Tage)',hide_hourly:'🕐 Stündliche Werte ausblenden (7 Tage)',
+    sources:'📡 Quellen',best:'⭐ Best',all:'Alle',none:'Keine',
+    lang_label:'🌐 Sprache:',thresholds:'⚙️ Warnschwellen',
+    temp:'🌡 Temp',precip:'💧 Niederschlag',wind:'💨 Wind',dew:'🌫 Tau',
+    max:'Max',min:'Min',today:'Heute',tomorrow:'Morgen'},
+  it:{lang_name:'Italiano',search:'🔍 Cerca',search_ph:'Cerca località (città, paese)…',
+    refresh:'↺ Aggiorna',notif:'🔔 Notifiche',refresh_at:'⏲ Aggiorna ogni:',
+    retry:'↺ Riprova',week7:'📅 Previsioni 7 giorni (da oggi)',
+    show_hourly:'🕐 Mostra valori orari (7 giorni)',hide_hourly:'🕐 Nascondi valori orari (7 giorni)',
+    sources:'📡 Fonti',best:'⭐ Best',all:'Tutte',none:'Nessuna',
+    lang_label:'🌐 Lingua:',thresholds:'⚙️ Soglie di allerta',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Vento',dew:'🌫 Rugiada',
+    max:'Max',min:'Min',today:'Oggi',tomorrow:'Domani'},
+};
+const LANG_KEY='meteo_lang';
+let LANG='ro';
+function detectLang(){
+  try{
+    const saved=localStorage.getItem(LANG_KEY);
+    if(saved&&I18N[saved])return saved;
+    const dev=(navigator.language||navigator.userLanguage||'ro').slice(0,2).toLowerCase();
+    return I18N[dev]?dev:'ro';
+  }catch(e){return 'ro';}
+}
+function t(key){return (I18N[LANG]&&I18N[LANG][key])||I18N.ro[key]||key;}
+function applyLang(){
+  // texte cu data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(elm=>{
+    const k=elm.getAttribute('data-i18n');const v=t(k);if(v)elm.textContent=v;
+  });
+  // placeholder-uri cu data-i18n-ph
+  document.querySelectorAll('[data-i18n-ph]').forEach(elm=>{
+    const k=elm.getAttribute('data-i18n-ph');const v=t(k);if(v)elm.setAttribute('placeholder',v);
+  });
+  const sel=el('lang-sel');if(sel)sel.value=LANG;
+}
+function setLang(code){
+  if(!I18N[code])return;
+  LANG=code;
+  try{localStorage.setItem(LANG_KEY,code);}catch(e){}
+  applyLang();
+  // re-randează componentele dinamice care conțin text localizat
+  if(_lastResults)applyResults(_lastResults);
 }
 
 // ── Render 7 zile ───────────────────────────────────────────────────────────
@@ -1667,6 +1788,7 @@ function applyResults(results){
     const ei=el('thr-elev');if(ei&&document.activeElement!==ei)ei.value=String(Math.round(_resolvedElev));
   }
   el('coord').textContent=`${LAT.toFixed(3)}°N · ${LON.toFixed(3)}°E · ${valid.length} surse folosite${elevTxt}`;
+  updateLocnameDisplay();   // reactualizează cu altitudinea venită din API
   const ensActive=valid.some(r=>r.model.ensemble);
   const th=el('thr-hint');
   if(th)th.textContent=ensActive
@@ -1959,7 +2081,7 @@ function pickLocation(g){
   LAT=g.lat;LON=g.lon;TZ=g.tz||TZ;
   LOC_NAME=[g.name,g.admin,g.country].filter(Boolean).join(', ');_locKind='search';
   ELEV_OVERRIDE=null;syncElevInput();          // altitudine auto (DEM) la locație nouă
-  el('locname').textContent='📍 '+LOC_NAME;
+  updateLocnameDisplay();
   el('loc-res').style.display='none';el('loc-q').value='';
   _owCache=[];_owStatus='';_owCountryWide=0;_owFetchedFor='';renderOfficialWarnings();  // golește avertizările vechi imediat
   updateFixedBtns();saveLastLoc();clearCards();
@@ -1981,7 +2103,7 @@ function goFixed(which){
   const loc=locs[which]||HOME;
   LAT=loc.lat;LON=loc.lon;TZ=loc.tz;LOC_NAME=loc.name;_locKind=which;
   ELEV_OVERRIDE=null;syncElevInput();   // altitudine din DEM (auto), ca la celelalte locații
-  el('locname').textContent='📍 '+LOC_NAME;
+  updateLocnameDisplay();
   el('loc-res').style.display='none';el('loc-q').value='';
   if(countryFromTZ(TZ)!==_owFetchedFor){_owCache=[];renderOfficialWarnings();}  // golește avertizările dacă schimbi țara
   updateFixedBtns();saveLastLoc();clearCards();
@@ -2001,7 +2123,7 @@ function useCurrentLocation(){
       try{TZ=Intl.DateTimeFormat().resolvedOptions().timeZone||TZ;}catch(e){}
       LOC_NAME='Locația curentă';_locKind='gps';
       ELEV_OVERRIDE=null;syncElevInput();        // altitudine auto (DEM)
-      el('locname').textContent='📍 '+LOC_NAME;
+      updateLocnameDisplay();
       out.style.display='none';el('loc-q').value='';
       updateFixedBtns();saveLastLoc();clearCards();
       if(_bestMode)applyBestForLocation();
@@ -2020,7 +2142,7 @@ function locKey(e){if(e.key==='Enter'){e.preventDefault();doGeoSearch();}}
 // La deschidere: ultima locație + praguri (din localStorage). Dacă nu există: Daneti, altitudine DEM auto.
 if(!restoreLastLoc()){_locKind='daneti';ELEV_OVERRIDE=null;saveLastLoc();}
 if(_bestMode)applyBestForLocation();   // Best pentru locația restaurată
-el('locname').textContent='📍 '+LOC_NAME;
+updateLocnameDisplay();
 syncElevInput();syncThrInputs();updateFixedBtns();
 
 // ── Fundal dinamic sezonier (gradiente bogate, randomizate, cu lizibilitate garantată) ──
@@ -2085,6 +2207,7 @@ function tickClock(){
 tickClock();setInterval(tickClock,1000);
 
 applyDynamicBg();
+LANG=detectLang();applyLang();   // limbă: default = limba dispozitivului, sau cea salvată
 restoreRefreshInterval();   // restaurează intervalul ales anterior (din localStorage) înainte de a porni timerul
 loadWeather();
 _rv=setInterval(loadWeather,REFRESH_MS);
