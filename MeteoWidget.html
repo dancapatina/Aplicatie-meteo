@@ -1,4 +1,4 @@
-<!DOCTYPE html>   
+<!DOCTYPE html>
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
@@ -44,27 +44,27 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
 .line.frost{color:#7dd3fc;font-weight:700}
 .sep{color:#4a6070}
 
-#strip{display:flex;gap:4px;flex-shrink:0}
-#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:8px;padding:5px 1px}
-#strip .dname{font-size:clamp(.68rem,2.4vw,.84rem);color:#9fb3c8;font-weight:700}
-#strip .dico{font-size:clamp(1.1rem,4.8vw,1.6rem);line-height:1.2;margin:1px 0}
-#strip .dmax{font-size:clamp(.74rem,2.9vw,.94rem);font-weight:800;color:#fbbf24}
-#strip .dmin{font-size:clamp(.68rem,2.5vw,.86rem);color:#7dd3fc;font-weight:700}
-#strip .ddet{display:flex;flex-direction:column;gap:1px;margin-top:3px;padding-top:3px;border-top:1px solid rgba(255,255,255,.08)}
-#strip .drain{font-size:clamp(.58rem,2vw,.74rem);font-weight:800;color:#60a5fa}
-#strip .dwind{font-size:clamp(.58rem,2vw,.74rem);font-weight:800;color:#34d399}
-#strip .ddew{font-size:clamp(.56rem,1.9vw,.72rem);font-weight:800;color:#22d3ee}
+#strip{display:flex;gap:3px;flex-shrink:0}
+#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:7px;padding:4px 1px}
+#strip .dname{font-size:clamp(.6rem,2vw,.78rem);color:#9fb3c8;font-weight:700}
+#strip .dico{font-size:clamp(.95rem,4vw,1.4rem);line-height:1.2;margin:1px 0}
+#strip .dmax{font-size:clamp(.66rem,2.5vw,.88rem);font-weight:800;color:#fbbf24}
+#strip .dmin{font-size:clamp(.6rem,2.2vw,.8rem);color:#7dd3fc;font-weight:700}
+#strip .ddet{display:flex;flex-direction:column;gap:1px;margin-top:2px;padding-top:2px;border-top:1px solid rgba(255,255,255,.08)}
+#strip .drain{font-size:clamp(.52rem,1.8vw,.68rem);font-weight:800;color:#60a5fa}
+#strip .dwind{font-size:clamp(.52rem,1.8vw,.68rem);font-weight:800;color:#34d399}
+#strip .ddew{font-size:clamp(.5rem,1.7vw,.66rem);font-weight:800;color:#22d3ee}
 
 #upd{position:fixed;top:6px;right:10px;font-size:.66rem;color:#46617f;font-weight:600;z-index:50}
 /* Avertizări: fixate sus, deasupra cardului, ca să nu deschidă aplicația la click */
 #offwarn{position:fixed;top:0;left:0;right:0;z-index:200;display:none;flex-direction:column;gap:4px;
   padding:6px 10px;background:rgba(5,10,18,.92);backdrop-filter:blur(8px)}
 .ow-chips{display:flex;flex-wrap:wrap;gap:5px}
-.ow-chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:1px solid;
-  border-radius:18px;padding:5px 11px;font-weight:800;font-size:.8rem;line-height:1;font-family:inherit}
-.ow-chip-ico{font-size:1.05rem;line-height:1}
+.ow-chip{display:inline-flex;align-items:center;gap:4px;cursor:pointer;border:1px solid;
+  border-radius:13px;padding:3px 8px;font-weight:700;font-size:.68rem;line-height:1;font-family:inherit}
+.ow-chip-ico{font-size:.88rem;line-height:1}
 .ow-chip-lbl{white-space:nowrap}
-.ow-chip-caret{font-size:.68rem;opacity:.8}
+.ow-chip-caret{font-size:.6rem;opacity:.8}
 .ow-chip:active{transform:scale(.96)}
 .ow-panel{display:none;border:1px solid;border-radius:9px;padding:8px 11px;flex-direction:column;gap:3px;max-height:50vh;overflow-y:auto}
 .ow-panel.open{display:flex}
@@ -154,13 +154,13 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   <div class="ctrl-row">
     <span class="ctrl-lbl">🛰 Surse:</span>
     <div class="src-btns">
-      <button class="src-btn active" id="btn-best"  onclick="setSrc('best')">Best</button>
-      <button class="src-btn"        id="btn-toate" onclick="setSrc('toate')">Toate</button>
-      <button class="src-btn"        id="btn-none"  onclick="setSrc('none')">Niciuna</button>
+      <button class="src-btn active" id="btn-best"  onclick="setSrc('best')" data-i18n="best">Best</button>
+      <button class="src-btn"        id="btn-toate" onclick="setSrc('toate')" data-i18n="all">Toate</button>
+      <button class="src-btn"        id="btn-none"  onclick="setSrc('none')" data-i18n="none">Niciuna</button>
     </div>
   </div>
   <div class="ctrl-row ref-row">
-    <label>⏲ Actualizare:</label>
+    <label data-i18n="refresh_at">⏲ Actualizare:</label>
     <select id="w-refresh-sel" onchange="setWidgetRefreshInterval(this.value)">
       <option value="15">15 min</option><option value="30">30 min</option>
       <option value="45">45 min</option><option value="60">1 h</option>
@@ -168,6 +168,14 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
       <option value="105">1 h 45</option><option value="120">2 h</option>
       <option value="135">2 h 15</option><option value="150">2 h 30</option>
       <option value="165">2 h 45</option><option value="180">3 h</option>
+    </select>
+  </div>
+  <div class="ctrl-row ref-row">
+    <label data-i18n="lang_label">🌐 Limbă:</label>
+    <select id="lang-sel" onchange="setLang(this.value)">
+      <option value="ro">Română</option><option value="en">English</option>
+      <option value="fr">Français</option><option value="es">Español</option>
+      <option value="de">Deutsch</option><option value="it">Italiano</option>
     </select>
   </div>
 </div>
@@ -873,8 +881,8 @@ function render(hours){
   const L=[];
 
   if(Math.max(rp1,rp2)>0){
-    L.push(`<div class="line ${hi(Math.max(rp1,rp2))}">${pl.i} <b>${nr1(p1)} mm</b> · <b>${rp1}%</b>/1h `+
-      `<span class="sep">·</span> <b>${nr1(p2)} mm</b> · <b>${rp2}%</b>/2h</div>`);
+    L.push(`<div class="line ${hi(Math.max(rp1,rp2))}">${pl.i} <b>${nr1(p1)} l/mp</b> · <b>${rp1}%</b>/1h `+
+      `<span class="sep">·</span> <b>${nr1(p2)} l/mp</b> · <b>${rp2}%</b>/2h</div>`);
   }
   if(Math.max(wp1,wp2)>0){
     L.push(`<div class="line ${hi(Math.max(wp1,wp2))}">💨 <b>${Math.round(w1)} km/h</b> · <b>${wp1}%</b>/1h `+
@@ -902,26 +910,25 @@ function render(hours){
   }
   el('lines').innerHTML=L.join('');
 
-  // ── Banda zilelor: 5 zile (nu 7) — mai mult loc per zi, cifre mai mari ──
-  const days=next7days().slice(0,5);
+  // ── Banda zilelor: TOATE cele 7 zile — etichete înlocuite cu iconițe pt compactare ──
+  const days=next7days();
   el('strip').innerHTML=days.map(dk=>{
     const s=dayStats(hours,dk);
     const dh=dayHours(hours,dk);
     const midDay=dh.find(h=>h.h===14)||dh[Math.floor(dh.length/2)]||null;
     const ic=midDay?condIcon(midDay).i:'—';
     const nm=['Du','Lu','Ma','Mi','Jo','Vi','Sâ'][dow(dk)];
-    const rainTxt=s&&s.totP!=null?'Ploaie '+(Math.round(s.totP*10)/10).toFixed(1).replace('.',',')+' mm':'Ploaie —';
-    const windTxt=s&&s.wmax!=null?'Vânt '+Math.round(s.wmax)+' km/h':'Vânt —';
-    const arrow=s?windArrow(s.predDir):'·';
-    const card=s?windCard(s.predDir):'';
-    const dewTxt=s&&s.dpAvg!=null?'Punct rouă '+s.dpAvg+'°C':'Punct rouă —';
+    const rainTxt=s&&s.totP!=null?(Math.round(s.totP*10)/10).toFixed(1).replace('.',','):'—';
+    const windTxt=s&&s.wmax!=null?Math.round(s.wmax):'—';
+    const arrow=s?windArrow(s.predDir):'';
+    const dewTxt=s&&s.dpAvg!=null?s.dpAvg+'°':'—';
     return `<div class="d"><div class="dname">${nm}</div><div class="dico">${ic}</div>`+
       `<div class="dmax">${s&&s.tmax!=null?s.tmax+'°':'—'}</div>`+
       `<div class="dmin">${s&&s.tmin!=null?s.tmin+'°':'—'}</div>`+
       `<div class="ddet">`+
-        `<div class="drain">${rainTxt}</div>`+
-        `<div class="dwind">${windTxt} ${arrow} ${card}</div>`+
-        `<div class="ddew">${dewTxt}</div>`+
+        `<div class="drain">💧 ${rainTxt}</div>`+
+        `<div class="dwind">💨 ${windTxt} ${arrow}</div>`+
+        `<div class="ddew">🌫 ${dewTxt}</div>`+
       `</div></div>`;
   }).join('');
 }
@@ -933,7 +940,9 @@ const OW_TYPES={1:'Vânt',2:'Ninsoare/Gheață',3:'Furtună',4:'Ceață',5:'Cani
   11:'Avalanșe',12:'Ploi torențiale',13:'Furtună'};
 let _owCache=[];       // avertizările curente afișate
 let _owFetchedFor='';  // pt ce țară am încărcat ultima dată
-let _owStatus='';      // '' | 'non-europe' | 'no-warnings' | 'ok' | 'country-only'
+let _owStatus='';      // '' | 'non-europe' | 'no-warnings' | 'ok' | 'country-only' | 'other-regions' | 'proxy-fail'
+let _owAllCount=0;
+let _owErrDetail='';
 let _owCountryWide=0;
 
 function countryFromTZ(tz){
@@ -1109,10 +1118,10 @@ function warningMatchesLocation(w){
     const a=w.area.toLowerCase();
     if(kws.some(k=>a.includes(k)))return true;
   }
-  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/sud-vest ⇒ te privește
+  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/regiuni vecine ⇒ te privește
   if((_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti'||inDoljBox(LAT,LON))&&w.area){
     const a=w.area.toLowerCase();
-    if(/dolj|oltenia|craiova|sud-?vest|sud-?est|toată țara|toata tara|întreaga țară|intreaga tara|național|national/.test(a))return true;
+    if(/dolj|oltenia|craiova|gorj|mehedin|olt\b|vâlcea|valcea|sud-?vest|sud-?est|muntenia|cea mai mare parte|toată țara|toata tara|întreaga țară|intreaga tara|național|national|majoritatea|cea mai mare parte a țării|toate regiunile/.test(a))return true;
   }
 
   // 5) Degradare sigură: dacă avertizarea NU avea nicio informație geografică evaluabilă
@@ -1130,45 +1139,48 @@ async function fetchOfficialWarnings(){
   const country=countryFromTZ(TZ);
   const box=el('offwarn');if(!box)return;
 
-  // ── OPȚIUNEA 2: locație în afara acoperirii Meteoalarm (non-Europa: Tokyo, Lima, Seattle...) ──
   if(!country){
-    _owCache=[];
-    _owCountryWide=0;
-    _owStatus='non-europe';   // Meteoalarm acoperă doar Europa
-    renderOfficialWarnings();
-    return;
+    _owCache=[]; _owCountryWide=0; _owStatus='non-europe';
+    renderOfficialWarnings(); return;
   }
 
-  // Feed CAP Atom oficial Meteoalarm, per țară. Browserul nu-l poate lua direct (fără CORS),
-  // deci trecem printr-un proxy CORS public. Degradare grațioasă dacă pică.
   const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
+  // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+    u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+    u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,  // întoarce JSON cu .contents
   ];
 
-  for(const wrap of proxies){
+  let lastErr='';
+  for(let pi=0;pi<proxies.length;pi++){
+    const wrap=proxies[pi];
     try{
-      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),12000);
+      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),13000);
       const r=await fetch(wrap(feed),{signal:ctrl.signal});
       clearTimeout(tid);
-      if(!r.ok)continue;
-      const txt=await r.text();
+      if(!r.ok){lastErr='HTTP '+r.status;continue;}
+      let txt=await r.text();
+      // allorigins /get întoarce JSON {contents:"..."} — extragem
+      if(pi===4){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
+      if(!txt||txt.length<50){lastErr='răspuns gol';continue;}
       const parsed=parseMeteoalarmAtom(txt);
-      // resetez marcajele de „country-wide" înainte de filtrare
       parsed.forEach(w=>{w._countryWide=false;});
-      const local=parsed.filter(warningMatchesLocation);   // doar cele care acoperă locația curentă
+      const local=parsed.filter(warningMatchesLocation);
       _owCache=local;
-      // numără câte avertizări active există în țară dar nu pot fi localizate (căutări libere)
       _owCountryWide=parsed.filter(w=>w._countryWide).length;
       _owFetchedFor=country;
-      _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : 'no-warnings');
+      _owAllCount=parsed.length;   // câte avertizări sunt în țară (total)
+      _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : (parsed.length>0?'other-regions':'no-warnings'));
       renderOfficialWarnings();
       return;
-    }catch(e){ /* încearcă următorul proxy */ }
+    }catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':'rețea'; }
   }
-  // toate proxy-urile au eșuat — nu blocăm aplicația, doar nu afișăm avertizări oficiale
-  if(_owFetchedFor!==country){ _owCache=[]; _owStatus=''; renderOfficialWarnings(); }
+  // toate proxy-urile au eșuat
+  _owCache=[]; _owStatus='proxy-fail'; _owErrDetail=lastErr;
+  renderOfficialWarnings();
 }
 
 function fmtDtShort(iso){
@@ -1190,6 +1202,16 @@ function renderOfficialWarnings(){
     if(_owStatus==='country-only' && _owCountryWide>0){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">ℹ️ ${_owCountryWide} avertizare/i activă/e în țară (nelocalizabile precis aici)</div>`;
+      return;
+    }
+    if(_owStatus==='other-regions' && _owAllCount>0){
+      box.style.display='flex';
+      box.innerHTML=`<div class="ow-note">✅ ${_owAllCount} avertizări active în țară, dar niciuna pentru zona ta acum.</div>`;
+      return;
+    }
+    if(_owStatus==='proxy-fail'){
+      box.style.display='flex';
+      box.innerHTML=`<div class="ow-note">⚠️ Avertizările oficiale momentan inaccesibile (${esc(_owErrDetail||'rețea')}). Se reîncearcă automat.</div>`;
       return;
     }
     box.style.display='none'; box.innerHTML=''; return;
@@ -1230,6 +1252,89 @@ function owToggle(idx){
 }
 
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ── Sistem de localizare (i18n): RO/EN/FR/ES/DE/IT ──────────────────────────
+const I18N={
+  ro:{lang_name:'Română',search:'🔍 Caută',search_ph:'Caută localitate (oraș, sat)…',
+    refresh:'↺ Actualizează',notif:'🔔 Notificări',refresh_at:'⏲ Actualizare la:',
+    retry:'↺ Reîncearcă',week7:'📅 Prognoză 7 zile (de azi)',
+    show_hourly:'🕐 Arată valorile orare (7 zile)',hide_hourly:'🕐 Ascunde valorile orare (7 zile)',
+    sources:'📡 Surse',best:'⭐ Best',all:'Toate',none:'Niciuna',
+    lang_label:'🌐 Limbă:',thresholds:'⚙️ Praguri alerte',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Vânt',dew:'🌫 Rouă',
+    max:'Max',min:'Min',today:'Astăzi',tomorrow:'Mâine'},
+  en:{lang_name:'English',search:'🔍 Search',search_ph:'Search location (city, village)…',
+    refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
+    retry:'↺ Retry',week7:'📅 7-day forecast (from today)',
+    show_hourly:'🕐 Show hourly values (7 days)',hide_hourly:'🕐 Hide hourly values (7 days)',
+    sources:'📡 Sources',best:'⭐ Best',all:'All',none:'None',
+    lang_label:'🌐 Language:',thresholds:'⚙️ Alert thresholds',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Wind',dew:'🌫 Dew',
+    max:'Max',min:'Min',today:'Today',tomorrow:'Tomorrow'},
+  fr:{lang_name:'Français',search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)…',
+    refresh:'↺ Actualiser',notif:'🔔 Notifications',refresh_at:'⏲ Actualiser :',
+    retry:'↺ Réessayer',week7:'📅 Prévisions 7 jours (dès aujourd’hui)',
+    show_hourly:'🕐 Afficher les valeurs horaires (7 jours)',hide_hourly:'🕐 Masquer les valeurs horaires (7 jours)',
+    sources:'📡 Sources',best:'⭐ Best',all:'Toutes',none:'Aucune',
+    lang_label:'🌐 Langue :',thresholds:'⚙️ Seuils d’alerte',
+    temp:'🌡 Temp',precip:'💧 Précip.',wind:'💨 Vent',dew:'🌫 Rosée',
+    max:'Max',min:'Min',today:'Aujourd’hui',tomorrow:'Demain'},
+  es:{lang_name:'Español',search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)…',
+    refresh:'↺ Actualizar',notif:'🔔 Notificaciones',refresh_at:'⏲ Actualizar cada:',
+    retry:'↺ Reintentar',week7:'📅 Pronóstico 7 días (desde hoy)',
+    show_hourly:'🕐 Mostrar valores horarios (7 días)',hide_hourly:'🕐 Ocultar valores horarios (7 días)',
+    sources:'📡 Fuentes',best:'⭐ Best',all:'Todas',none:'Ninguna',
+    lang_label:'🌐 Idioma:',thresholds:'⚙️ Umbrales de alerta',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Viento',dew:'🌫 Rocío',
+    max:'Máx',min:'Mín',today:'Hoy',tomorrow:'Mañana'},
+  de:{lang_name:'Deutsch',search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)…',
+    refresh:'↺ Aktualisieren',notif:'🔔 Mitteilungen',refresh_at:'⏲ Aktualisieren:',
+    retry:'↺ Wiederholen',week7:'📅 7-Tage-Vorhersage (ab heute)',
+    show_hourly:'🕐 Stündliche Werte anzeigen (7 Tage)',hide_hourly:'🕐 Stündliche Werte ausblenden (7 Tage)',
+    sources:'📡 Quellen',best:'⭐ Best',all:'Alle',none:'Keine',
+    lang_label:'🌐 Sprache:',thresholds:'⚙️ Warnschwellen',
+    temp:'🌡 Temp',precip:'💧 Niederschlag',wind:'💨 Wind',dew:'🌫 Tau',
+    max:'Max',min:'Min',today:'Heute',tomorrow:'Morgen'},
+  it:{lang_name:'Italiano',search:'🔍 Cerca',search_ph:'Cerca località (città, paese)…',
+    refresh:'↺ Aggiorna',notif:'🔔 Notifiche',refresh_at:'⏲ Aggiorna ogni:',
+    retry:'↺ Riprova',week7:'📅 Previsioni 7 giorni (da oggi)',
+    show_hourly:'🕐 Mostra valori orari (7 giorni)',hide_hourly:'🕐 Nascondi valori orari (7 giorni)',
+    sources:'📡 Fonti',best:'⭐ Best',all:'Tutte',none:'Nessuna',
+    lang_label:'🌐 Lingua:',thresholds:'⚙️ Soglie di allerta',
+    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Vento',dew:'🌫 Rugiada',
+    max:'Max',min:'Min',today:'Oggi',tomorrow:'Domani'},
+};
+const LANG_KEY='meteo_lang';
+let LANG='ro';
+function detectLang(){
+  try{
+    const saved=localStorage.getItem(LANG_KEY);
+    if(saved&&I18N[saved])return saved;
+    const dev=(navigator.language||navigator.userLanguage||'ro').slice(0,2).toLowerCase();
+    return I18N[dev]?dev:'ro';
+  }catch(e){return 'ro';}
+}
+function t(key){return (I18N[LANG]&&I18N[LANG][key])||I18N.ro[key]||key;}
+function applyLang(){
+  // texte cu data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(elm=>{
+    const k=elm.getAttribute('data-i18n');const v=t(k);if(v)elm.textContent=v;
+  });
+  // placeholder-uri cu data-i18n-ph
+  document.querySelectorAll('[data-i18n-ph]').forEach(elm=>{
+    const k=elm.getAttribute('data-i18n-ph');const v=t(k);if(v)elm.setAttribute('placeholder',v);
+  });
+  const sel=el('lang-sel');if(sel)sel.value=LANG;
+}
+function setLang(code){
+  if(!I18N[code])return;
+  LANG=code;
+  try{localStorage.setItem(LANG_KEY,code);}catch(e){}
+  applyLang();
+  // re-randează componentele dinamice care conțin text localizat
+  if(typeof loadWidget==='function')loadWidget();
+}
+
 
 // ── Stare locație și surse ───────────────────────────────────────────────
 let _locKind='daneti';   // 'daneti'|'craiova'|'york'|'raieti'
@@ -1439,6 +1544,7 @@ function pickWidgetLoc(idx){
 restoreRefreshInterval();
 refreshMainAppLink();
 applyDynamicBg();
+LANG=detectLang();applyLang();   // limbă: default = limba dispozitivului, sau cea salvată
 loadWidget();
 _refreshTimer=setInterval(loadWidget,REFRESH_MS);
 
