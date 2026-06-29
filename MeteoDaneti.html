@@ -191,9 +191,9 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
     <div id="offwarn"></div>
     <div id="nowcast" class="nowcast" style="display:none"></div>
     <div class="locbar">
-      <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" onkeydown="locKey(event)" autocomplete="off">
+      <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" data-i18n-ph="loc_ph" onkeydown="locKey(event)" autocomplete="off">
       <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
-      <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()">📡 Locația curentă</button>
+      <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 Locația curentă</button>
       <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
       <button class="btn loc-fixed active" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
       <button class="btn loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
