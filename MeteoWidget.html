@@ -845,14 +845,14 @@ function render(hours){
   if(!cur){ renderError(); return; }
 
   const cond=condIcon(cur);
-  const t =cur.tMean!=null?Math.round(cur.tMean):null;
-  const at=cur.atMean!=null?Math.round(cur.atMean):t;
+  const tCur=cur.tMean!=null?Math.round(cur.tMean):null;
+  const at=cur.atMean!=null?Math.round(cur.atMean):tCur;
   const ds=dayStats(hours,dk0);
   const maxToday=ds&&ds.tmax!=null?ds.tmax:null;
 
   el('w-ico').textContent=cond.i;
-  el('w-temp').innerHTML=(t!=null?t:'—')+'<span class="unit">°C</span>';
-  el('w-sub').textContent=cond.t+(at!=null?' · resimțit '+at+'°':'')+(maxToday!=null?' · Max '+maxToday+'°':'');
+  el('w-temp').innerHTML=(tCur!=null?tCur:'—')+'<span class="unit">°C</span>';
+  el('w-sub').textContent=cond.t+(at!=null?' · '+t('feels_label')+' '+at+'°':'')+(maxToday!=null?' · '+t('week_max')+' '+maxToday+'°':'');
 
   // Locație: doar primul segment (ex. "Craiova" din "Craiova, Dolj") + altitudine
   const shortName=LOC_NAME.split(',')[0].trim();
