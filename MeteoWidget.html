@@ -147,14 +147,14 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   </div>
   <!-- Câmp căutare liberă -->
   <div class="ctrl-row" style="gap:4px">
-    <input id="w-loc-q" type="text" placeholder="Caută altă locație…" autocomplete="off"
+    <input id="w-loc-q" type="text" placeholder="Caută altă locație…" data-i18n-ph="loc_ph" autocomplete="off"
       style="flex:1;background:#0d1a27;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;
              padding:4px 8px;font-size:.72rem;font-weight:600;outline:none"
       onkeydown="if(event.key==='Enter')searchWidgetLoc()"
       oninput="el('w-loc-res').style.display='none'">
     <button onclick="searchWidgetLoc()"
       style="background:#0e4f73;color:#7dd3fc;border:1px solid #3b82f6;border-radius:6px;
-             padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">Caută</button>
+             padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap" data-i18n="search">Caută</button>
   </div>
   <!-- Rezultate căutare -->
   <div id="w-loc-res" style="display:none;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto"></div>
