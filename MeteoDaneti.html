@@ -1308,8 +1308,8 @@ function renderNowcast(hours,cur){
   if(!cur){box.style.display='none';return;}
   box.style.display='';
   const cond=condIcon(cur);
-  const t=cur.tMean!=null?Math.round(cur.tMean):null;
-  const at=cur.atMean!=null?Math.round(cur.atMean):(t!=null?t:null);
+  const tCur=cur.tMean!=null?Math.round(cur.tMean):null;
+  const at=cur.atMean!=null?Math.round(cur.atMean):(tCur!=null?tCur:null);
   const dk0=dkNow(),h0=hNow();
   const todayStats=dayStats(hours,dk0);
   const maxToday=todayStats&&todayStats.tmax!=null?todayStats.tmax:null;
@@ -1350,7 +1350,7 @@ function renderNowcast(hours,cur){
   }
   box.innerHTML=
     `<div class="nc-main"><span class="nc-ico">${cond.i}</span>`+
-    `<span>${t!=null?t+'°C':'—'}</span>`+
+    `<span>${tCur!=null?tCur+'°C':'—'}</span>`+
     `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}</span></div>`+
     nreHtml+
     `<div class="nc-sub">${L.join('')}</div>`;
