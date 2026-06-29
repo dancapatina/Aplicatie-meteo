@@ -245,7 +245,8 @@ function dDay(dk){return parseInt(dk.split('-')[2],10);}
 
 function dMon(dk){return parseInt(dk.split('-')[1],10);}
 
-function roDateLong(dk){return ZILE_LUNG[dow(dk)]+' '+dDay(dk)+' '+LUNI[dMon(dk)-1]+' '+dk.split('-')[0];}
+function roDateLong(dk){const ZL=getZileLung(),LU=getLuni();return ZL[dow(dk)]+' '+dDay(dk)+' '+LU[dMon(dk)-1]+' '+dk.split('-')[0];}
+function roDateShort(dk){const ZS=getZileScurt(),LS=getLuniS();return ZS[dow(dk)]+' '+dDay(dk)+' '+LS[dMon(dk)-1];}
 
 function next7days(){const a=[];let dk=dkNow();for(let i=0;i<7;i++){a.push(dk);dk=advDay(dk);}return a;}
 
@@ -1144,7 +1145,22 @@ async function fetchOfficialWarnings(){
     renderOfficialWarnings(); return;
   }
 
-  const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
+  // ANM direct (Romania)
+  if(country==='romania'){
+    const aFs=['https://www.meteoromania.ro/avertizari-xml.php','https://www.meteoromania.ro/avertizari-nowcasting-xml.php'];
+    const aPs=[u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`];
+    for(const aF of aFs){for(const wP of aPs){try{
+      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+      const r=await fetch(wP(aF),{signal:ctrl.signal});clearTimeout(tid);
+      if(!r.ok)continue;const txt=await r.text();if(!txt||txt.length<80)continue;
+      const p=parseMeteoalarmAtom(txt);if(!p.length)continue;
+      p.forEach(w=>{w._countryWide=false;});
+      const loc=p.filter(warningMatchesLocation);
+      loc.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
+      if(loc.length){_owCache=loc.slice(0,3);_owCountryWide=0;_owFetchedFor=country;_owAllCount=p.length;_owStatus='ok';renderOfficialWarnings();return;}
+    }catch(e){}}}
+  }
+    const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
   // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
@@ -1306,193 +1322,52 @@ const I18N={
     // Widget
     loc_label:'📍 Loc:',src_label:'🛰 Surse:',
   },
-  en:{lang_name:'English',
-    search:'🔍 Search',search_ph:'Search location (city, village)…',
-    refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
-    retry:'↺ Retry',lang_label:'🌐 Language:',
-    week7:'📅 7-day forecast (from today)',
-    show_hourly:'🕐 Show hourly values (7 days)',hide_hourly:'🕐 Hide hourly values (7 days)',
-    today:'Today',tomorrow:'Tomorrow',loading:'Loading...',
-    sources:'📡 Sources',best:'⭐ Best',all:'✓ All',none:'○ None',
-    sources_tip:'Click an active source to include (✓) or exclude (○). Forecast recalculates instantly. Inactive sources (✗) have no data for this location.',
-    used_of:' used / ',' active':' active',
-    thresholds:'🎯 Thresholds:',rain_lbl:'🌧 rain ≥',wind_lbl:'💨 wind ≥',frost_lbl:'❄ frost ≤',heat_lbl:'🔥 heat ≥',prob_lbl:'📊 prob.',alt_lbl:'⛰ alt.',
-    prob_note:'probabilities recalculated from ensemble',
-    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Wind',dew:'🌫 Dew',
-    max:'Max',min:'Min',
-    loc_search:'📡 Current location',loc_ph:'Search location…',
-    updating:'🔄 Auto-updating...',
-    next_update:'⏱ next: ',updating_now:'⏱ updating...',
-    colors_refreshed:'🎨 colors refreshed',
-    no_source:'⚠️ No source selected (or selected sources have no data here). Choose at least one active source.',
-    all_fail:'❌ All sources unavailable. Check your connection.',
-    searching:'Searching',via_src:'via ',choose_loc:'— choose location:',
-    search_err:'Search error: ',geo_unavail:'Geolocation unavailable on this device.',
-    getting_loc:'Getting current location…',
-    learn_collecting:'🧠 self-learning: collecting data...',
-    learn_learning:'🧠 learning',learn_comparisons:' comparisons (correction starts at ',learn_per_hour:'/hour)',
-    learn_active:'🧠 correction active: ',learn_hours:' hours',learn_avg:' · avg error ±',
-    notif_unsupported:'Notifications not supported on this device.',
-    notif_active:'✓ Notifications active',notif_activated:'✓ Notifications enabled!',
-    notif_denied:'Notifications denied — alerts will appear in the app only.',
-    notif_blocked:'Notifications blocked — alerts appear in the app only.',
-    ow_non_europe:'🌍 Official warnings: Europe only (Meteoalarm/EUMETNET)',
-    ow_country_only:'warning(s) active in country (not localizable to this point)',
-    ow_other_regions:'warnings active in country, but none for your area now.',
-    ow_proxy_fail:'⚠️ Official warnings temporarily unavailable',ow_retry:'. Retrying automatically.',
-    ensemble_hint:'✓ REAL probability from ensemble (today+tomorrow)',no_ensemble_hint:'weighted consensus (ensemble inactive/deselected)',
-    loc_label:'📍 Location:',src_label:'🛰 Sources:',
-  },
-  fr:{lang_name:'Français',
-    search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)…',
-    refresh:'↺ Actualiser',notif:'🔔 Notifications',refresh_at:'⏲ Actualiser :',
-    retry:'↺ Réessayer',lang_label:'🌐 Langue :',
-    week7:'📅 Prévisions 7 jours (dès aujourd’hui)',
-    show_hourly:'🕐 Afficher les valeurs horaires (7 jours)',hide_hourly:'🕐 Masquer les valeurs horaires (7 jours)',
-    today:'Aujourd’hui',tomorrow:'Demain',loading:'Chargement...',
-    sources:'📡 Sources',best:'⭐ Best',all:'✓ Toutes',none:'○ Aucune',
-    sources_tip:'Cliquez sur une source active pour l’inclure (✓) ou l’exclure (○). La prévision se recalcule instantanément.',
-    used_of:' utilisées / ',' active':' actives',
-    thresholds:'🎯 Seuils :',rain_lbl:'🌧 pluie ≥',wind_lbl:'💨 vent ≥',frost_lbl:'❄ gel ≤',heat_lbl:'🔥 chaleur ≥',prob_lbl:'📊 prob.',alt_lbl:'⛰ alt.',
-    prob_note:'probabilités recalculées depuis l’ensemble',
-    temp:'🌡 Temp',precip:'💧 Précip.',wind:'💨 Vent',dew:'🌫 Rosée',
-    max:'Max',min:'Min',
-    loc_search:'📡 Position actuelle',loc_ph:'Rechercher un lieu…',
-    updating:'🔄 Mise à jour auto...',
-    next_update:'⏱ prochaine : ',updating_now:'⏱ mise à jour...',
-    colors_refreshed:'🎨 couleurs actualisées',
-    no_source:'⚠️ Aucune source sélectionnée. Choisissez au moins une source active.',
-    all_fail:'❌ Toutes les sources indisponibles. Vérifiez votre connexion.',
-    searching:'Recherche',via_src:'via ',choose_loc:'— choisir le lieu :',
-    search_err:'Erreur de recherche : ',geo_unavail:'Géolocalisation indisponible sur cet appareil.',
-    getting_loc:'Obtention de la position actuelle…',
-    learn_collecting:'🧠 auto-apprentissage : collecte de données...',
-    learn_learning:'🧠 apprentissage',learn_comparisons:' comparaisons (correction démarre à ',learn_per_hour:'/heure)',
-    learn_active:'🧠 correction active : ',learn_hours:' heures',learn_avg:' · erreur moy. ±',
-    notif_unsupported:'Notifications non supportées sur cet appareil.',
-    notif_active:'✓ Notifications actives',notif_activated:'✓ Notifications activées !',
-    notif_denied:'Notifications refusées — les alertes apparaîtront dans l’application.',
-    notif_blocked:'Notifications bloquées — les alertes apparaissent dans l’application.',
-    ow_non_europe:'🌍 Alertes officielles : Europe uniquement (Meteoalarm/EUMETNET)',
-    ow_country_only:'alerte(s) active(s) dans le pays (non localisables précisément)',
-    ow_other_regions:'alertes actives dans le pays, mais aucune pour votre zone.',
-    ow_proxy_fail:'⚠️ Alertes officielles temporairement inaccessibles',ow_retry:'. Nouvelle tentative automatique.',
-    ensemble_hint:'✓ Probabilité RÉELLE depuis l’ensemble (aujourd’hui+demain)',no_ensemble_hint:'consensus pondéré (ensemble inactif/désélectionné)',
-    loc_label:'📍 Lieu :',src_label:'🛰 Sources :',
-  },
-  es:{lang_name:'Español',
-    search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)…',
-    refresh:'↺ Actualizar',notif:'🔔 Notificaciones',refresh_at:'⏲ Actualizar cada:',
-    retry:'↺ Reintentar',lang_label:'🌐 Idioma:',
-    week7:'📅 Pronóstico 7 días (desde hoy)',
-    show_hourly:'🕐 Mostrar valores horarios (7 días)',hide_hourly:'🕐 Ocultar valores horarios (7 días)',
-    today:'Hoy',tomorrow:'Mañana',loading:'Cargando...',
-    sources:'📡 Fuentes',best:'⭐ Best',all:'✓ Todas',none:'○ Ninguna',
-    sources_tip:'Haz clic en una fuente activa para incluirla (✓) o excluirla (○). El pronóstico se recalcula al instante.',
-    used_of:' usadas / ',' active':' activas',
-    thresholds:'🎯 Umbrales:',rain_lbl:'🌧 lluvia ≥',wind_lbl:'💨 viento ≥',frost_lbl:'❄ helada ≤',heat_lbl:'🔥 calor ≥',prob_lbl:'📊 prob.',alt_lbl:'⛰ alt.',
-    prob_note:'probabilidades recalculadas desde el ensemble',
-    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Viento',dew:'🌫 Rocío',
-    max:'Máx',min:'Mín',
-    loc_search:'📡 Ubicación actual',loc_ph:'Buscar lugar…',
-    updating:'🔄 Actualización automática...',
-    next_update:'⏱ siguiente: ',updating_now:'⏱ actualizando...',
-    colors_refreshed:'🎨 colores actualizados',
-    no_source:'⚠️ Ninguna fuente seleccionada. Elige al menos una fuente activa.',
-    all_fail:'❌ Todas las fuentes no disponibles. Verifica tu conexión.',
-    searching:'Buscando',via_src:'vía ',choose_loc:'— elige la localidad:',
-    search_err:'Error de búsqueda: ',geo_unavail:'Geolocalización no disponible en este dispositivo.',
-    getting_loc:'Obteniendo ubicación actual…',
-    learn_collecting:'🧠 auto-aprendizaje: recopilando datos...',
-    learn_learning:'🧠 aprendiendo',learn_comparisons:' comparaciones (corrección inicia en ',learn_per_hour:'/hora)',
-    learn_active:'🧠 corrección activa: ',learn_hours:' horas',learn_avg:' · error medio ±',
-    notif_unsupported:'Notificaciones no soportadas en este dispositivo.',
-    notif_active:'✓ Notificaciones activas',notif_activated:'✓ ¡Notificaciones activadas!',
-    notif_denied:'Notificaciones denegadas — las alertas aparecerán solo en la app.',
-    notif_blocked:'Notificaciones bloqueadas — las alertas aparecen en la app.',
-    ow_non_europe:'🌍 Alertas oficiales: solo Europa (Meteoalarm/EUMETNET)',
-    ow_country_only:'alerta(s) activa(s) en el país (no localizables con precisión)',
-    ow_other_regions:'alertas activas en el país, pero ninguna para tu zona.',
-    ow_proxy_fail:'⚠️ Alertas oficiales temporalmente inaccesibles',ow_retry:'. Reintentando automáticamente.',
-    ensemble_hint:'✓ Probabilidad REAL del ensemble (hoy+mañana)',no_ensemble_hint:'consenso ponderado (ensemble inactivo/deseleccionado)',
-    loc_label:'📍 Lugar:',src_label:'🛰 Fuentes:',
-  },
-  de:{lang_name:'Deutsch',
-    search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)…',
-    refresh:'↺ Aktualisieren',notif:'🔔 Mitteilungen',refresh_at:'⏲ Aktualisieren:',
-    retry:'↺ Wiederholen',lang_label:'🌐 Sprache:',
-    week7:'📅 7-Tage-Vorhersage (ab heute)',
-    show_hourly:'🕐 Stündliche Werte anzeigen (7 Tage)',hide_hourly:'🕐 Stündliche Werte ausblenden (7 Tage)',
-    today:'Heute',tomorrow:'Morgen',loading:'Wird geladen...',
-    sources:'📡 Quellen',best:'⭐ Best',all:'✓ Alle',none:'○ Keine',
-    sources_tip:'Klicken Sie auf eine aktive Quelle, um sie einzuschließen (✓) oder auszuschließen (○). Die Vorhersage wird sofort neu berechnet.',
-    used_of:' verwendet / ',' active':' aktiv',
-    thresholds:'🎯 Schwellenwerte:',rain_lbl:'🌧 Regen ≥',wind_lbl:'💨 Wind ≥',frost_lbl:'❄ Frost ≤',heat_lbl:'🔥 Hitze ≥',prob_lbl:'📊 Wahr.',alt_lbl:'⛰ Höhe',
-    prob_note:'Wahrscheinlichkeiten aus Ensemble neu berechnet',
-    temp:'🌡 Temp',precip:'💧 Niederschlag',wind:'💨 Wind',dew:'🌫 Tau',
-    max:'Max',min:'Min',
-    loc_search:'📡 Aktueller Standort',loc_ph:'Ort suchen…',
-    updating:'🔄 Automatische Aktualisierung...',
-    next_update:'⏱ nächste: ',updating_now:'⏱ wird aktualisiert...',
-    colors_refreshed:'🎨 Farben aktualisiert',
-    no_source:'⚠️ Keine Quelle ausgewählt. Bitte mindestens eine aktive Quelle wählen.',
-    all_fail:'❌ Alle Quellen nicht verfügbar. Verbindung prüfen.',
-    searching:'Suche',via_src:'über ',choose_loc:'— Ort auswählen:',
-    search_err:'Suchfehler: ',geo_unavail:'Geolokalisierung auf diesem Gerät nicht verfügbar.',
-    getting_loc:'Aktuellen Standort wird ermittelt…',
-    learn_collecting:'🧠 Selbstlernen: Daten werden gesammelt...',
-    learn_learning:'🧠 Lerne',learn_comparisons:' Vergleiche (Korrektur startet bei ',learn_per_hour:'/Stunde)',
-    learn_active:'🧠 Korrektur aktiv: ',learn_hours:' Stunden',learn_avg:' · Ø Fehler ±',
-    notif_unsupported:'Benachrichtigungen auf diesem Gerät nicht unterstützt.',
-    notif_active:'✓ Benachrichtigungen aktiv',notif_activated:'✓ Benachrichtigungen aktiviert!',
-    notif_denied:'Benachrichtigungen abgelehnt — Warnungen erscheinen nur in der App.',
-    notif_blocked:'Benachrichtigungen blockiert — Warnungen erscheinen in der App.',
-    ow_non_europe:'🌍 Offizielle Warnungen: nur Europa (Meteoalarm/EUMETNET)',
-    ow_country_only:'Warnung(en) im Land aktiv (nicht genau lokalisierbar)',
-    ow_other_regions:'Warnungen im Land aktiv, aber keine für Ihren Bereich.',
-    ow_proxy_fail:'⚠️ Offizielle Warnungen vorübergehend nicht verfügbar',ow_retry:'. Automatischer Wiederholungsversuch.',
-    ensemble_hint:'✓ ECHTE Wahrscheinlichkeit aus Ensemble (heute+morgen)',no_ensemble_hint:'gewichteter Konsens (Ensemble inaktiv/abgewählt)',
-    loc_label:'📍 Ort:',src_label:'🛰 Quellen:',
-  },
-  it:{lang_name:'Italiano',
-    search:'🔍 Cerca',search_ph:'Cerca località (città, paese)…',
-    refresh:'↺ Aggiorna',notif:'🔔 Notifiche',refresh_at:'⏲ Aggiorna ogni:',
-    retry:'↺ Riprova',lang_label:'🌐 Lingua:',
-    week7:'📅 Previsioni 7 giorni (da oggi)',
-    show_hourly:'🕐 Mostra valori orari (7 giorni)',hide_hourly:'🕐 Nascondi valori orari (7 giorni)',
-    today:'Oggi',tomorrow:'Domani',loading:'Caricamento...',
-    sources:'📡 Fonti',best:'⭐ Best',all:'✓ Tutte',none:'○ Nessuna',
-    sources_tip:'Clicca su una fonte attiva per includerla (✓) o escluderla (○). La previsione si ricalcola istantaneamente.',
-    used_of:' usate / ',' active':' attive',
-    thresholds:'🎯 Soglie:',rain_lbl:'🌧 pioggia ≥',wind_lbl:'💨 vento ≥',frost_lbl:'❄ gelo ≤',heat_lbl:'🔥 caldo ≥',prob_lbl:'📊 prob.',alt_lbl:'⛰ alt.',
-    prob_note:'probabilità ricalcolate dall’ensemble',
-    temp:'🌡 Temp',precip:'💧 Precip.',wind:'💨 Vento',dew:'🌫 Rugiada',
-    max:'Max',min:'Min',
-    loc_search:'📡 Posizione attuale',loc_ph:'Cerca località…',
-    updating:'🔄 Aggiornamento automatico...',
-    next_update:'⏱ prossimo: ',updating_now:'⏱ aggiornamento...',
-    colors_refreshed:'🎨 colori aggiornati',
-    no_source:'⚠️ Nessuna fonte selezionata. Scegli almeno una fonte attiva.',
-    all_fail:'❌ Tutte le fonti non disponibili. Controlla la connessione.',
-    searching:'Ricerca',via_src:'via ',choose_loc:'— scegli la località:',
-    search_err:'Errore di ricerca: ',geo_unavail:'Geolocalizzazione non disponibile su questo dispositivo.',
-    getting_loc:'Ottenimento posizione attuale…',
-    learn_collecting:'🧠 auto-apprendimento: raccolta dati...',
-    learn_learning:'🧠 apprendimento',learn_comparisons:' confronti (correzione inizia a ',learn_per_hour:'/ora)',
-    learn_active:'🧠 correzione attiva: ',learn_hours:' ore',learn_avg:' · errore medio ±',
-    notif_unsupported:'Notifiche non supportate su questo dispositivo.',
-    notif_active:'✓ Notifiche attive',notif_activated:'✓ Notifiche attivate!',
-    notif_denied:'Notifiche negate — gli avvisi appariranno solo nell’app.',
-    notif_blocked:'Notifiche bloccate — gli avvisi appaiono nell’app.',
-    ow_non_europe:'🌍 Avvisi ufficiali: solo Europa (Meteoalarm/EUMETNET)',
-    ow_country_only:'avviso/i attivo/i nel paese (non localizzabili con precisione)',
-    ow_other_regions:'avvisi attivi nel paese, ma nessuno per la tua zona.',
-    ow_proxy_fail:'⚠️ Avvisi ufficiali temporaneamente non accessibili',ow_retry:'. Nuovo tentativo automatico.',
-    ensemble_hint:'✓ Probabilità REALE dall’ensemble (oggi+domani)',no_ensemble_hint:'consenso ponderato (ensemble inattivo/deselezionato)',
-    loc_label:'📍 Luogo:',src_label:'🛰 Fonti:',
-  },
 };
 const LANG_KEY='meteo_lang';
+// Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
+const I18N_ARRAYS={
+  ro:{
+    days_short:['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'],
+    days_long:['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'],
+    months:['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'],
+    months_short:['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','nov','dec'],
+  },
+  en:{
+    days_short:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    days_long:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    months_short:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  },
+  fr:{
+    days_short:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'],
+    days_long:['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+    months:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+    months_short:['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'],
+  },
+  es:{
+    days_short:['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
+    days_long:['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
+    months:['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
+    months_short:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
+  },
+  de:{
+    days_short:['So','Mo','Di','Mi','Do','Fr','Sa'],
+    days_long:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
+    months:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
+    months_short:['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],
+  },
+  it:{
+    days_short:['Dom','Lun','Mar','Mer','Gio','Ven','Sab'],
+    days_long:['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'],
+    months:['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],
+    months_short:['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'],
+  },
+};
+function getZileScurt(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).days_short;}
+function getZileLung(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).days_long;}
+function getLuni(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).months;}
+function getLuniS(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).months_short;}
+
 let LANG='ro';
 function detectLang(){
   try{
@@ -1522,6 +1397,11 @@ function setLang(code){
   // re-randează componentele dinamice care conțin text localizat
   if(typeof loadWidget==='function')loadWidget();
 }
+window.addEventListener('storage',e=>{
+  if(e.key===LANG_KEY&&e.newValue&&I18N[e.newValue]&&e.newValue!==LANG){
+    LANG=e.newValue;applyLang();if(typeof loadWidget==='function')loadWidget();
+  }
+});
 
 
 // ── Stare locație și surse ───────────────────────────────────────────────
