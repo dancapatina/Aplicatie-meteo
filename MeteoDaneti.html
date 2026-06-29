@@ -275,11 +275,11 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <!-- AZI / MAINE -->
 <div class="sgrid">
   <div class="card" id="card-azi">
-    <div class="card-hdr"><span class="day-lbl" id="lbl-azi">Astăzi</span><span class="date-lbl" id="dt-azi">—</span></div>
+    <div class="card-hdr"><span class="day-lbl" id="lbl-azi" data-i18n="today_section">Astăzi</span><span class="date-lbl" id="dt-azi">—</span></div>
     <div id="body-azi" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
   </div>
   <div class="card" id="card-maine">
-    <div class="card-hdr"><span class="day-lbl" id="lbl-maine">Mâine</span><span class="date-lbl" id="dt-maine">—</span></div>
+    <div class="card-hdr"><span class="day-lbl" id="lbl-maine" data-i18n="tomorrow_section">Mâine</span><span class="date-lbl" id="dt-maine">—</span></div>
     <div id="body-maine" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
   </div>
 </div>
@@ -342,7 +342,7 @@ let FROST_T=0, HEAT_T=35;                  // praguri fizice Pilon C (°C): ger 
 const LS_KEY='meteo_settings_v2';          // localStorage: locație + praguri persistente
 const FCST_DAYS=14;   // orizont de fetch (extins pt. căutarea ploii viitoare >10l/mp); tabelul 7-zile rămâne la 7 (next7days())
 const ENS_DAYS=2;                          // ensemble doar pentru azi+mâine (acolo contează acuratețea)
-const ZILE_SCURT=['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
+const ZILE_SCURT=['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];   // fallback static
 const ZILE_LUNG=['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
 const LUNI=['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
 const LUNI_S=['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','nov','dec'];
@@ -388,8 +388,8 @@ function advDay(dk){const[y,m,d]=dk.split('-').map(Number);return lparts(new Dat
 function dow(dk){const[y,m,d]=dk.split('-').map(Number);return new Date(y,m-1,d,12).getDay();}
 function dDay(dk){return parseInt(dk.split('-')[2],10);}
 function dMon(dk){return parseInt(dk.split('-')[1],10);}
-function roDateLong(dk){return ZILE_LUNG[dow(dk)]+' '+dDay(dk)+' '+LUNI[dMon(dk)-1]+' '+dk.split('-')[0];}  // Luni 15 iunie 2026
-function roDateShort(dk){return ZILE_SCURT[dow(dk)]+' '+dDay(dk)+' '+LUNI_S[dMon(dk)-1];}  // Lun 15 iun
+function roDateLong(dk){const ZL=getZileLung(),LU=getLuni();return ZL[dow(dk)]+' '+dDay(dk)+' '+LU[dMon(dk)-1]+' '+dk.split('-')[0];}
+function roDateShort(dk){const ZS=getZileScurt(),LS=getLuniS();return ZS[dow(dk)]+' '+dDay(dk)+' '+LS[dMon(dk)-1];}
 function next7days(){const a=[];let dk=dkNow();for(let i=0;i<7;i++){a.push(dk);dk=advDay(dk);}return a;}
 function get7daySlots(){const s=[];let dk=dkNow(),h=hNow();for(let i=0;i<FCST_DAYS*24;i++){s.push({dk,h});h++;if(h>=24){h=0;dk=advDay(dk);}}return s;}
 
@@ -982,6 +982,45 @@ async function fetchOfficialWarnings(){
     renderOfficialWarnings(); return;
   }
 
+  // ── Sursă primară: ANM Romania direct (text complet în română) ──
+  // Numai pentru România — feed-ul oficial meteoromania.ro are textul descriptiv complet
+  if(country==='romania'){
+    const anmFeeds=[
+      'https://www.meteoromania.ro/avertizari-xml.php',
+      'https://www.meteoromania.ro/avertizari-nowcasting-xml.php',
+    ];
+    const anmProxies=[
+      u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+    ];
+    for(const anmUrl of anmFeeds){
+      for(const wrap of anmProxies){
+        try{
+          const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+          const r=await fetch(wrap(anmUrl),{signal:ctrl.signal});
+          clearTimeout(tid);
+          if(!r.ok)continue;
+          let txt=await r.text();
+          if(!txt||txt.length<80)continue;
+          const parsed=parseMeteoalarmAtom(txt);
+          if(!parsed.length)continue;   // feed gol sau format diferit → încearcă alt proxy
+          parsed.forEach(w=>{w._countryWide=false;});
+          const local=parsed.filter(warningMatchesLocation);
+          local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
+          if(local.length){
+            _owCache=local.slice(0,3);
+            _owCountryWide=0; _owFetchedFor=country; _owAllCount=parsed.length;
+            _owStatus='ok';
+            renderOfficialWarnings();
+            return;  // ANM direct a funcționat, nu mai e nevoie de Meteoalarm
+          }
+        }catch(e){ /* încearcă alt proxy ANM */ }
+      }
+    }
+    // ANM direct a eșuat sau nu sunt avertizări → cade pe Meteoalarm (poate are mai multe)
+  }
+
   const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
   // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
@@ -1293,26 +1332,26 @@ function renderNowcast(hours,cur){
   }
   // linia de ploaie — doar dacă există șanse (≠0)
   if(Math.max(rp1,rp2)>0){
-    L.push(`<span>${pl.i} ${pl.t}: <b>${nr1(p1)} l/mp</b> · <b class="${hi(rp1)}">${rp1}%</b> șanse în 1 oră `+
-      `<span class="sep" style="color:#5a7390">/</span> <b>${nr1(p2)} l/mp</b> · <b class="${hi(rp2)}">${rp2}%</b> în 2 ore</span>`);
+    L.push(`<span>${pl.i} ${pl.t}: <b>${nr1(p1)} l/mp</b> · <b class="${hi(rp1)}">${rp1}%</b> ${t('chance_1h')} `+
+      `<span class="sep" style="color:#5a7390">/</span> <b>${nr1(p2)} l/mp</b> · <b class="${hi(rp2)}">${rp2}%</b> ${t('chance_2h')}</span>`);
   }
   // linia de vânt — doar dacă există șanse (≠0)
   if(Math.max(wp1,wp2)>0){
-    L.push(`<span>💨 Vânt: <b>${Math.round(w1)} km/h</b> · <b class="${hi(wp1)}">${wp1}%</b> șanse în 1 oră `+
-      `<span class="sep" style="color:#5a7390">/</span> <b>${Math.round(w2)} km/h</b> · <b class="${hi(wp2)}">${wp2}%</b> în 2 ore</span>`);
+    L.push(`<span>${t('wind_label')}: <b>${Math.round(w1)} km/h</b> · <b class="${hi(wp1)}">${wp1}%</b> ${t('chance_1h')} `+
+      `<span class="sep" style="color:#5a7390">/</span> <b>${Math.round(w2)} km/h</b> · <b class="${hi(wp2)}">${wp2}%</b> ${t('chance_2h')}</span>`);
   }
-  if(!L.length)L.push(`<span style="color:#8aa0b8">Fără șanse notabile de precipitații sau vânt în următoarele 2 ore.</span>`);
+  if(!L.length)L.push(`<span style="color:#8aa0b8">${t('no_chances')}</span>`);
   // Următoarea ploaie susținută (>10 l/mp, >1 oră) căutată în următoarele 14 zile — vizibilă doar dacă există
   const nre=nextRainEvent(hours);
   let nreHtml='';
   if(nre){
-    nreHtml=`<div class="nc-rainevt">🌧️ <b>Următoarea ploaie &gt;${RAIN_EVENT_MM} l/mp:</b> `+
-      `${roDateLong(nre.dk)} · <b>${(Math.round(nre.total*10)/10).toFixed(1).replace('.',',')} l/mp</b> · ora ${nre.from}–${nre.to}</div>`;
+    nreHtml=`<div class="nc-rainevt">🌧️ <b>${t('next_rain')} &gt;${RAIN_EVENT_MM} l/mp:</b> `+
+      `${roDateLong(nre.dk)} · <b>${(Math.round(nre.total*10)/10).toFixed(1).replace('.',',')} l/mp</b> · ${t('at_hour')} ${nre.from}–${nre.to}</div>`;
   }
   box.innerHTML=
     `<div class="nc-main"><span class="nc-ico">${cond.i}</span>`+
     `<span>${t!=null?t+'°C':'—'}</span>`+
-    `<span class="nc-cond">· resimțit ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>Max '+maxToday+'°</b>':''} · ${cond.t}</span></div>`+
+    `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}</span></div>`+
     nreHtml+
     `<div class="nc-sub">${L.join('')}</div>`;
 }
@@ -1343,7 +1382,7 @@ function renderDayCard(elId,dk,hours,refHour){
     const col=warm?'#fb7185':'#7dd3fc';
     const val=cross
       ? `<span style="color:${col};font-weight:800">${cross.ivs.join('&nbsp; ')} · ${cross.extreme}°C</span> <span style="color:#fbbf24">⚠</span>`
-      : `<span class="nil">fără depășire</span>`;
+      : `<span class="nil">${t('no_exceed')}</span>`;
     chtml=`<div class="drow">
       <div class="dl"><span class="ico">${ico}</span>${label}</div>
       <div class="dv">${val}</div>
@@ -1358,7 +1397,7 @@ function renderDayCard(elId,dk,hours,refHour){
     <div class="dl"><span class="ico">🌡</span>Temperatură ${ref?.label||''}</div>
     <div class="dv"><span class="v-temp">${tNow!=null?tNow+'<span class="unit">°C</span>':'<span class="nil">—</span>'}</span>
       <span class="sep" style="color:#5a7390">/</span>
-      <span class="v-feel">${tNow!=null?'resimțit '+(atNow!=null?atNow:tNow):'—'}<span class="unit">°C</span></span></div>
+      <span class="v-feel">${tNow!=null?t('feels_label')+' '+(atNow!=null?atNow:tNow):'—'}<span class="unit">°C</span></span></div>
   </div>
   ${bandHtml}
   <div class="drow">
@@ -1444,7 +1483,21 @@ const I18N={
     ensemble_hint:'✓ probabilitate REALĂ din ensemble (azi+mâine)',no_ensemble_hint:'consens ponderat (ensemble inactiv/deselectat)',
     // Widget
     loc_label:'📍 Loc:',src_label:'🛰 Surse:',
-  },
+  
+    feels_like:'resimțit',
+    chance_1h:'șanse în 1 oră',
+    chance_2h:'în 2 ore',
+    no_chances:'Fără șanse notabile de precipitații sau vânt în următoarele 2 ore.',
+    wind_label:'💨 Vânt',
+    next_rain:'Următoarea ploaie',
+    at_hour:'ora',
+    no_exceed:'fără depășire',
+    feels_label:'resimțit',
+    today_lbl:'▸ Astăzi',
+    tomorrow_lbl:'▸ Mâine',
+    see_hourly:'Vezi valorile orare ale zilei',
+    today_section:'AZI',
+    tomorrow_section:'MÂINE',},
   en:{lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
@@ -1481,7 +1534,21 @@ const I18N={
     ow_proxy_fail:'⚠️ Official warnings temporarily unavailable',ow_retry:'. Retrying automatically.',
     ensemble_hint:'✓ REAL probability from ensemble (today+tomorrow)',no_ensemble_hint:'weighted consensus (ensemble inactive/deselected)',
     loc_label:'📍 Location:',src_label:'🛰 Sources:',
-  },
+  
+    feels_like:'feels like',
+    chance_1h:'chance in 1h',
+    chance_2h:'in 2h',
+    no_chances:'No notable precipitation or wind chances in the next 2 hours.',
+    wind_label:'💨 Wind',
+    next_rain:'Next rain',
+    at_hour:'at',
+    no_exceed:'no threshold exceeded',
+    feels_label:'feels like',
+    today_lbl:'▸ Today',
+    tomorrow_lbl:'▸ Tomorrow',
+    see_hourly:'View hourly values for the day',
+    today_section:'TODAY',
+    tomorrow_section:'TOMORROW',},
   fr:{lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)…',
     refresh:'↺ Actualiser',notif:'🔔 Notifications',refresh_at:'⏲ Actualiser :',
@@ -1518,7 +1585,21 @@ const I18N={
     ow_proxy_fail:'⚠️ Alertes officielles temporairement inaccessibles',ow_retry:'. Nouvelle tentative automatique.',
     ensemble_hint:'✓ Probabilité RÉELLE depuis l’ensemble (aujourd’hui+demain)',no_ensemble_hint:'consensus pondéré (ensemble inactif/désélectionné)',
     loc_label:'📍 Lieu :',src_label:'🛰 Sources :',
-  },
+  
+    feels_like:'ressenti',
+    chance_1h:'chance en 1h',
+    chance_2h:'en 2h',
+    no_chances:'Aucune chance notable de précipitations ou de vent dans les 2 prochaines heures.',
+    wind_label:'💨 Vent',
+    next_rain:'Prochaine pluie',
+    at_hour:'à',
+    no_exceed:'aucun dépassement',
+    feels_label:'ressenti',
+    today_lbl:'▸ Aujourd’hui',
+    tomorrow_lbl:'▸ Demain',
+    see_hourly:'Voir les valeurs horaires de la journée',
+    today_section:'AUJOURD’HUI',
+    tomorrow_section:'DEMAIN',},
   es:{lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)…',
     refresh:'↺ Actualizar',notif:'🔔 Notificaciones',refresh_at:'⏲ Actualizar cada:',
@@ -1555,7 +1636,21 @@ const I18N={
     ow_proxy_fail:'⚠️ Alertas oficiales temporalmente inaccesibles',ow_retry:'. Reintentando automáticamente.',
     ensemble_hint:'✓ Probabilidad REAL del ensemble (hoy+mañana)',no_ensemble_hint:'consenso ponderado (ensemble inactivo/deseleccionado)',
     loc_label:'📍 Lugar:',src_label:'🛰 Fuentes:',
-  },
+  
+    feels_like:'sensación',
+    chance_1h:'prob. en 1h',
+    chance_2h:'en 2h',
+    no_chances:'Sin posibilidades notables de precipitación o viento en las próximas 2 horas.',
+    wind_label:'💨 Viento',
+    next_rain:'Próxima lluvia',
+    at_hour:'a las',
+    no_exceed:'sin superación',
+    feels_label:'sensación',
+    today_lbl:'▸ Hoy',
+    tomorrow_lbl:'▸ Mañana',
+    see_hourly:'Ver valores horarios del día',
+    today_section:'HOY',
+    tomorrow_section:'MAÑANA',},
   de:{lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)…',
     refresh:'↺ Aktualisieren',notif:'🔔 Mitteilungen',refresh_at:'⏲ Aktualisieren:',
@@ -1592,7 +1687,21 @@ const I18N={
     ow_proxy_fail:'⚠️ Offizielle Warnungen vorübergehend nicht verfügbar',ow_retry:'. Automatischer Wiederholungsversuch.',
     ensemble_hint:'✓ ECHTE Wahrscheinlichkeit aus Ensemble (heute+morgen)',no_ensemble_hint:'gewichteter Konsens (Ensemble inaktiv/abgewählt)',
     loc_label:'📍 Ort:',src_label:'🛰 Quellen:',
-  },
+  
+    feels_like:'gefühlt',
+    chance_1h:'Chance in 1Std',
+    chance_2h:'in 2Std',
+    no_chances:'Keine nennenswerten Niederschlags- oder Windchancen in den nächsten 2 Stunden.',
+    wind_label:'💨 Wind',
+    next_rain:'Nächster Regen',
+    at_hour:'um',
+    no_exceed:'kein Überschreitung',
+    feels_label:'gefühlt',
+    today_lbl:'▸ Heute',
+    tomorrow_lbl:'▸ Morgen',
+    see_hourly:'Stündliche Werte des Tages anzeigen',
+    today_section:'HEUTE',
+    tomorrow_section:'MORGEN',},
   it:{lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)…',
     refresh:'↺ Aggiorna',notif:'🔔 Notifiche',refresh_at:'⏲ Aggiorna ogni:',
@@ -1629,9 +1738,67 @@ const I18N={
     ow_proxy_fail:'⚠️ Avvisi ufficiali temporaneamente non accessibili',ow_retry:'. Nuovo tentativo automatico.',
     ensemble_hint:'✓ Probabilità REALE dall’ensemble (oggi+domani)',no_ensemble_hint:'consenso ponderato (ensemble inattivo/deselezionato)',
     loc_label:'📍 Luogo:',src_label:'🛰 Fonti:',
-  },
+  
+    feels_like:'percepita',
+    chance_1h:'prob. in 1h',
+    chance_2h:'in 2h',
+    no_chances:'Nessuna probabilità notevole di precipitazioni o vento nelle prossime 2 ore.',
+    wind_label:'💨 Vento',
+    next_rain:'Prossima pioggia',
+    at_hour:'alle',
+    no_exceed:'nessun superamento',
+    feels_label:'percepita',
+    today_lbl:'▸ Oggi',
+    tomorrow_lbl:'▸ Domani',
+    see_hourly:'Visualizza valori orari del giorno',
+    today_section:'OGGI',
+    tomorrow_section:'DOMANI',},
 };
 const LANG_KEY='meteo_lang';
+// Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
+const I18N_ARRAYS={
+  ro:{
+    days_short:['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'],
+    days_long:['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'],
+    months:['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'],
+    months_short:['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','nov','dec'],
+  },
+  en:{
+    days_short:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    days_long:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    months_short:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  },
+  fr:{
+    days_short:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'],
+    days_long:['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+    months:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+    months_short:['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'],
+  },
+  es:{
+    days_short:['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
+    days_long:['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
+    months:['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
+    months_short:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
+  },
+  de:{
+    days_short:['So','Mo','Di','Mi','Do','Fr','Sa'],
+    days_long:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
+    months:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
+    months_short:['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],
+  },
+  it:{
+    days_short:['Dom','Lun','Mar','Mer','Gio','Ven','Sab'],
+    days_long:['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'],
+    months:['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],
+    months_short:['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'],
+  },
+};
+function getZileScurt(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).days_short;}
+function getZileLung(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).days_long;}
+function getLuni(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).months;}
+function getLuniS(){return(I18N_ARRAYS[LANG]||I18N_ARRAYS.ro).months_short;}
+
 let LANG='ro';
 function detectLang(){
   try{
@@ -1666,9 +1833,16 @@ function setLang(code){
   LANG=code;
   try{localStorage.setItem(LANG_KEY,code);}catch(e){}
   applyLang();
-  // re-randează componentele dinamice care conțin text localizat
   if(_lastResults)applyResults(_lastResults);
 }
+// Sincronizare limbă cu MeteoWidget (storage event se declanșează DOAR în alte tab-uri)
+window.addEventListener('storage',e=>{
+  if(e.key===LANG_KEY&&e.newValue&&I18N[e.newValue]&&e.newValue!==LANG){
+    LANG=e.newValue;
+    applyLang();
+    if(_lastResults)applyResults(_lastResults);
+  }
+});
 
 // ── Render 7 zile ───────────────────────────────────────────────────────────
 function renderWeek(hours){
@@ -1677,7 +1851,7 @@ function renderWeek(hours){
   const dk0=dkNow();
   const head=days.map(dk=>{
     const cls=dk===dk0?' today':'';
-    return `<th class="wk-day${cls}" onclick="gotoHourlyDay('${dk}')" title="Vezi valorile orare ale zilei">${ZILE_SCURT[dow(dk)]}<br>${dDay(dk)} ${LUNI_S[dMon(dk)-1]}</th>`;
+    return `<th class="wk-day${cls}" onclick="gotoHourlyDay('${dk}')" title="${t('see_hourly')}">${ZILE_SCURT[dow(dk)]}<br>${dDay(dk)} ${LUNI_S[dMon(dk)-1]}</th>`;
   }).join('');
 
   const tdCls=dk=>dk===dk0?' class="today wk-day" ':' class="wk-day" ';
@@ -1713,7 +1887,7 @@ function renderHourly(hours){
   const rows=list.map(h=>{
     let sep='';
     if(h.dk!==prev){prev=h.dk;
-      const lbl=h.dk===dk0?'▸ Astăzi — '+roDateLong(h.dk):h.dk===dkTomr()?'▸ Mâine — '+roDateLong(h.dk):'▸ '+roDateLong(h.dk);
+      const lbl=h.dk===dk0?t('today_lbl')+' — '+roDateLong(h.dk):h.dk===dkTomr()?t('tomorrow_lbl')+' — '+roDateLong(h.dk):'▸ '+roDateLong(h.dk);
       sep=`<tr class="day-sep" id="hday-${h.dk}"><td colspan="6">${lbl}</td></tr>`;
     }
     const nowCls=h.isNow?' class="now-row-hl"':'';
@@ -1942,10 +2116,10 @@ function applyResults(results){
   const stAzi  =dayStats(hours,dkNow());
   const stMaine=dayStats(hours,dkTomr());
   const mmHtml=s=>(s&&s.tmax!=null&&s.tmin!=null)
-    ?`<span class="date-mm"><span class="mx">Max ${s.tmax}°C</span><span class="sep">/</span><span class="mn">Min ${s.tmin}°C</span></span>`:'';
-  el('lbl-azi').textContent=t('today');
+    ?`<span class="date-mm"><span class="mx">${t('week_max')} ${s.tmax}°C</span><span class="sep">/</span><span class="mn">${t('week_min')} ${s.tmin}°C</span></span>`:'';
+  el('lbl-azi').textContent=t('today_section');
   el('dt-azi').innerHTML=roDateLong(dkNow())+mmHtml(stAzi);
-  el('lbl-maine').textContent=roDateLong(dkTomr()).split(' ')[0]; // ex. "Marți"
+  el('lbl-maine').textContent=t('tomorrow_section');
   el('dt-maine').innerHTML=dDay(dkTomr())+' '+LUNI[dMon(dkTomr())-1]+' '+dkTomr().split('-')[0]+mmHtml(stMaine);
 
   // ora reprezentativă
