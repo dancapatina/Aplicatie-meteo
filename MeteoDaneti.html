@@ -340,6 +340,7 @@ let WIND_MIN=8, RAIN_MIN=4.0;              // praguri fizice (ajustabile): km/h 
 let P_LOW=40, P_HIGH=70;                   // praguri de PROBABILITATE (%) — ploaie, vânt, ger, caniculă
 let FROST_T=0, HEAT_T=35;                  // praguri fizice Pilon C (°C): ger ≤ FROST_T, caniculă ≥ HEAT_T
 const LS_KEY='meteo_settings_v2';          // localStorage: locație + praguri persistente
+const SYNC_KEY='meteo_widget_sync';        // canal bidirecțional widget↔MeteoDaneti
 const FCST_DAYS=14;   // orizont de fetch (extins pt. căutarea ploii viitoare >10l/mp); tabelul 7-zile rămâne la 7 (next7days())
 const ENS_DAYS=2;                          // ensemble doar pentru azi+mâine (acolo contează acuratețea)
 const ZILE_SCURT=['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];   // fallback static
@@ -1841,6 +1842,30 @@ window.addEventListener('storage',e=>{
     LANG=e.newValue;
     applyLang();
     if(_lastResults)applyResults(_lastResults);
+  }
+  // Preia setările complete când widget-ul face actualizare forțată
+  if(e.key===SYNC_KEY&&e.newValue){
+    try{
+      const o=JSON.parse(e.newValue);
+      // Limbă
+      if(o.lang&&I18N[o.lang]&&o.lang!==LANG){
+        LANG=o.lang;
+        try{localStorage.setItem(LANG_KEY,LANG);}catch(ex){}
+        applyLang();
+      }
+      // Praguri
+      if(o.thr){
+        const T=o.thr;
+        if(typeof T.RAIN_MIN==='number')RAIN_MIN=T.RAIN_MIN;
+        if(typeof T.WIND_MIN==='number')WIND_MIN=T.WIND_MIN;
+        if(typeof T.FROST_T==='number')FROST_T=T.FROST_T;
+        if(typeof T.HEAT_T==='number')HEAT_T=T.HEAT_T;
+        if(typeof T.P_LOW==='number')P_LOW=T.P_LOW;
+        if(typeof T.P_HIGH==='number')P_HIGH=T.P_HIGH;
+      }
+      // Reafișează cu noile setări dacă avem date
+      if(_lastResults)applyResults(_lastResults);
+    }catch(ex){}
   }
 });
 
