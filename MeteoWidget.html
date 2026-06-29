@@ -114,9 +114,16 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   <div class="row1">
     <span class="ico" id="w-ico">🌦</span>
     <div class="tblock">
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span class="temp" id="w-temp">—<span class="unit">°C</span></span>
         <span id="w-clock" style="font-size:clamp(1.6rem,7vw,2.4rem);font-weight:800;letter-spacing:.04em"></span>
+        <button onclick="forceWidgetRefresh()" id="w-btn-refresh"
+          style="font-size:clamp(.72rem,2.8vw,.9rem);font-weight:800;padding:5px 11px;
+                 border-radius:8px;border:1px solid rgba(125,211,252,.35);
+                 background:rgba(14,79,115,.55);color:#7dd3fc;cursor:pointer;
+                 font-family:inherit;transition:opacity .15s;white-space:nowrap;
+                 backdrop-filter:blur(4px)"
+          data-i18n="refresh">↺ Actualizează</button>
       </div>
       <span class="sub" id="w-sub">Se încarcă…</span>
       <span class="loc" id="w-loc"></span>
@@ -1423,15 +1430,33 @@ function saveWidgetState(){
       loc:{lat:LAT,lon:LON,tz:TZ,name:LOC_NAME,elev:ELEV_OVERRIDE,kind:_locKind},
       thr:{RAIN_MIN,WIND_MIN,FROST_T,HEAT_T,P_LOW,P_HIGH}
     }));
-    // scrie pe SYNC_KEY — include și surse+refresh pentru sincronizare completă
+    // scrie pe SYNC_KEY — include și surse+refresh+limbă pentru sincronizare completă
     localStorage.setItem(SYNC_KEY,JSON.stringify({
       loc:{lat:LAT,lon:LON,tz:TZ,name:LOC_NAME,elev:ELEV_OVERRIDE,kind:_locKind},
       thr:{RAIN_MIN,WIND_MIN,FROST_T,HEAT_T,P_LOW,P_HIGH},
       src:{bestMode:_srcMode==='best', selected:resolvedIds(LAT,LON)},
       refresh:Math.round(REFRESH_MS/60000),
+      lang:LANG,
       ts:Date.now()
     }));
   }catch(e){}
+}
+
+// Actualizare forțată: sincronizează tot cu MeteoDaneti și reîncarcă datele
+function forceWidgetRefresh(){
+  const btn=el('w-btn-refresh');
+  if(btn){btn.style.opacity='.45';btn.disabled=true;}
+  // 1) Aplică limba + setări vizuale
+  applyLang();
+  applyDynamicBg();
+  // 2) Salvează starea curentă pe localStorage — MeteoDaneti o va prelua prin storage event
+  saveWidgetState();
+  // 3) Salvează și limba separat (LANG_KEY) ca să fie preluată corect
+  try{localStorage.setItem(LANG_KEY,LANG);}catch(e){}
+  // 4) Reîncarcă datele meteo
+  loadWidget().finally(()=>{
+    if(btn){btn.style.opacity='1';btn.disabled=false;}
+  });
 }
 
 // Restaurează intervalul de refresh din localStorage
