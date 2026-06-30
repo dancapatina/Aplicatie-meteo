@@ -131,7 +131,7 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
          font-size:clamp(.72rem,2.8vw,.9rem);font-weight:800;padding:5px 11px;
          border-radius:8px;border:1px solid rgba(125,211,252,.35);
          background:rgba(14,79,115,.55);color:#7dd3fc;cursor:pointer;
-         font-family:inherit;transition:opacity .15s;white-space:nowrap;
+         font-family:inherit;transition:top .2s ease,opacity .15s;white-space:nowrap;
          backdrop-filter:blur(4px)"
   data-i18n="refresh">↺ Actualizează</button>
 
@@ -988,6 +988,34 @@ function owLevelClass(lvl){
 
 function isEuropeanTZ(tz){ return !!tz && tz.startsWith('Europe/'); }
 
+// Curăță textul Meteoalarm de câmpuri tehnice CAP (awareness_level, awareness_type,
+// date de la/pana la, județe standalone). Funcționează atât pentru format multi-linie
+// cât și pentru format inline (toate pe aceeași linie cu ;).
+function stripMeteoalarmMeta(txt){
+  if(!txt)return '';
+  // ETAPA 1: elimină TOATĂ linia de la awareness_level/type până la end-of-line
+  txt=txt
+    .replace(/awareness[_\s\-]level\s*:\s*[^\n\r]*/gi,'')
+    .replace(/awareness[_\s\-]type\s*:\s*[^\n\r]*/gi,'');
+  // ETAPA 2: filtrare linie cu linie pentru restul câmpurilor
+  return txt.split(/\r?\n/)
+    .filter(raw=>{
+      const l=(raw||'').trim().toLowerCase();
+      if(!l)return false;
+      if(/awareness/i.test(l))return false;
+      if(/^de la\s*:/.test(l))return false;
+      if(/^p[aâ]n[aă]\s*la\s*:/.test(l))return false;
+      if(/^until\s*:/.test(l))return false;
+      if(/^from\s*:/.test(l))return false;
+      if(/^effective\s*:/.test(l))return false;
+      if(/^expires\s*:/.test(l))return false;
+      const trimmed=raw.trim();
+      if(trimmed.length<=30&&!/\d/.test(trimmed)&&!/[;:()\[\]]/.test(trimmed)&&/^[A-ZĂÂÎȘȚ]/.test(trimmed))return false;
+      return true;
+    })
+    .join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function parseMeteoalarmAtom(xmlText){
   const out=[];
   try{
@@ -1041,8 +1069,12 @@ function parseMeteoalarmAtom(xmlText){
       const content=get('content')||localText(en,'content');
       let desc=[description,instruction].filter(Boolean).join('\n\n');
       if(!desc)desc=summary||content||'';
-      // dacă summary e mai bogat decât description (uneori ANM pune tot în summary), îl preferăm
-      if(summary&&summary.length>desc.length)desc=summary;
+      // Preferăm summary NUMAI dacă nu conține metadata Meteoalarm (awareness_level = câmp tehnic CAP)
+      if(summary&&summary.length>desc.length&&!/awareness[_ ]level/i.test(summary))desc=summary;
+      // Curăță câmpurile tehnice CAP/Meteoalarm din text
+      desc=stripMeteoalarmMeta(desc);
+      // Fallback nuclear: dacă awareness a supraviețuit oricărui format, golim desc-ul
+      if(/awareness/i.test(desc))desc='';
       const area=localText(en,'areaDesc');
 
       // poligoane
@@ -1172,8 +1204,8 @@ async function fetchOfficialWarnings(){
       u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
       u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     ];
-    for(const wrap of anmWrappers){try{
-      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+    for(let wi=0;wi<anmWrappers.length;wi++){const wrap=anmWrappers[wi];const ms=wi===0?4000:9000;try{
+      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),ms);
       const r=await fetch(wrap(ANM_JSON),{signal:ctrl.signal});clearTimeout(tid);
       if(!r.ok)continue;
       const data=await r.json();
@@ -1186,14 +1218,16 @@ async function fetchOfficialWarnings(){
         _owStatus='ok';
         renderOfficialWarnings();return;
       }
-      break; // ANM răspuns valid dar fără alerte DJ → cade pe Meteoalarm
+      // ANM răspuns valid dar fără alerte DJ → cade pe Meteoalarm (poate are alerte mai recente)
+      break;
     }catch(e){}}
-    // JSON ANM a eșuat → cade pe Meteoalarm (fallback)
+    // JSON ANM a eșuat sau fără alerte → cade pe Meteoalarm (fallback)
   }
     const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
   // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u=>`https://proxy.cors.sh/${u}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
     u=>`https://thingproxy.freeboard.io/fetch/${u}`,
@@ -1210,24 +1244,26 @@ async function fetchOfficialWarnings(){
       if(!r.ok){lastErr='HTTP '+r.status;continue;}
       let txt=await r.text();
       // allorigins /get întoarce JSON {contents:"..."} — extragem
-      if(pi===4){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
+      if(pi===5){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
       if(!txt||txt.length<50){lastErr='răspuns gol';continue;}
       const parsed=parseMeteoalarmAtom(txt);
       parsed.forEach(w=>{w._countryWide=false;});
       const local=parsed.filter(warningMatchesLocation);
-      // Sortare: cele mai severe primele; limitat la max 3 (widget spațiu limitat)
       local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
       _owCache=local.slice(0,3);
       _owCountryWide=parsed.filter(w=>w._countryWide).length;
       _owFetchedFor=country;
-      _owAllCount=parsed.length;   // câte avertizări sunt în țară (total)
+      _owAllCount=parsed.length;
       _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : (parsed.length>0?'other-regions':'no-warnings'));
       renderOfficialWarnings();
       return;
     }catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':'rețea'; }
   }
   // toate proxy-urile au eșuat
-  _owCache=[]; _owStatus='proxy-fail'; _owErrDetail=lastErr;
+  // România: ascundem bara (ANM e sursa primară — dacă nici el n-a dat alerte, afișăm nimic)
+  _owCache=[];
+  _owStatus=(country==='romania')?'no-warnings':'proxy-fail';
+  _owErrDetail=lastErr;
   renderOfficialWarnings();
 }
 
@@ -1289,24 +1325,24 @@ function renderOfficialWarnings(){
     if(_owStatus==='non-europe'){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">${t('ow_non_europe')}</div>`;
-      return;
+      positionRefreshBtn();return;
     }
     if(_owStatus==='country-only' && _owCountryWide>0){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">ℹ️ ${_owCountryWide} ${t('ow_country_only')}</div>`;
-      return;
+      positionRefreshBtn();return;
     }
     if(_owStatus==='other-regions' && _owAllCount>0){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">✅ ${_owAllCount} ${t('ow_other_regions')}</div>`;
-      return;
+      positionRefreshBtn();return;
     }
     if(_owStatus==='proxy-fail'){
       box.style.display='flex';
       box.innerHTML=`<div class="ow-note">${t('ow_proxy_fail')} (${esc(_owErrDetail||'rețea')})${t('ow_retry')}</div>`;
-      return;
+      positionRefreshBtn();return;
     }
-    box.style.display='none'; box.innerHTML=''; return;
+    box.style.display='none'; box.innerHTML=''; positionRefreshBtn();return;
   }
 
   // ── Avertizări: DOAR iconițe compacte; click pe iconiță → expandează textul ANM complet ──
@@ -1325,7 +1361,7 @@ function renderOfficialWarnings(){
     const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
-    const bodyText=w.desc||[
+    const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
       w.headline&&w.headline!==w.event?w.headline:'',
       w.area?'Zone vizate: '+w.area:'',
       perioada?'Interval: '+perioada:'',
@@ -1339,6 +1375,19 @@ function renderOfficialWarnings(){
   }).join('');
 
   box.innerHTML=`<div class="ow-chips">${chips}</div>${panels}`;
+  positionRefreshBtn();
+}
+
+// Repoziționează butonul Actualizare sub banda de avertizări (#offwarn).
+// Când nu sunt avertizări, butonul stă la top:12px (poziția normală, sub #upd).
+// Când avertizările sunt vizibile, butonul se mută imediat sub ele (cu 6px gap),
+// astfel nu mai e acoperit de chipurile de avertizare pe mobil.
+function positionRefreshBtn(){
+  const btn=el('w-btn-refresh');
+  const ow=el('offwarn');
+  if(!btn)return;
+  const owH=(ow&&ow.offsetHeight&&ow.style.display!=='none')?ow.offsetHeight:0;
+  btn.style.top=(owH>0?owH+6:12)+'px';
 }
 
 function owToggle(idx){
@@ -1346,6 +1395,8 @@ function owToggle(idx){
   f.classList.toggle('open');
   const caret=el('ow-caret-'+idx);
   if(caret)caret.textContent=f.classList.contains('open')?'▾':'▸';
+  // Re-ajustează butonul Actualizare (panoul deschis schimbă înălțimea #offwarn)
+  positionRefreshBtn();
 }
 
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -2217,6 +2268,8 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw-widget.js').catch(()=>{});
   });
 }
+// Reajustează butonul Actualizare la redimensionare ecran (orientare landscape/portrait)
+window.addEventListener('resize',positionRefreshBtn);
 </script>
 </body>
 </html>
