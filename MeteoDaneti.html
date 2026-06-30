@@ -983,43 +983,41 @@ async function fetchOfficialWarnings(){
     renderOfficialWarnings(); return;
   }
 
-  // ── Sursă primară: ANM Romania direct (text complet în română) ──
-  // Numai pentru România — feed-ul oficial meteoromania.ro are textul descriptiv complet
+  // ── Sursă primară: ANM Romania JSON API oficial ──
+  // Endpoint: wp-json/meteoapi/v2/avertizari-generale
+  // Format JSON cu textul complet în română; filtrare precisă pe județ (cod DJ = Dolj).
+  // API-ul ANM nu restricționează CORS → funcționează direct din browser.
   if(country==='romania'){
-    const anmFeeds=[
-      'https://www.meteoromania.ro/avertizari-xml.php',
-      'https://www.meteoromania.ro/avertizari-nowcasting-xml.php',
-    ];
-    const anmProxies=[
+    const ANM_JSON='https://www.meteoromania.ro/wp-json/meteoapi/v2/avertizari-generale';
+    const anmWrappers=[
+      u=>u,  // direct — fără proxy (ANM permite CORS pe acest endpoint)
       u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
       u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
     ];
-    for(const anmUrl of anmFeeds){
-      for(const wrap of anmProxies){
-        try{
-          const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
-          const r=await fetch(wrap(anmUrl),{signal:ctrl.signal});
-          clearTimeout(tid);
-          if(!r.ok)continue;
-          let txt=await r.text();
-          if(!txt||txt.length<80)continue;
-          const parsed=parseMeteoalarmAtom(txt);
-          if(!parsed.length)continue;   // feed gol sau format diferit → încearcă alt proxy
-          parsed.forEach(w=>{w._countryWide=false;});
-          const local=parsed.filter(warningMatchesLocation);
+    for(const wrap of anmWrappers){
+      try{
+        const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+        const r=await fetch(wrap(ANM_JSON),{signal:ctrl.signal});
+        clearTimeout(tid);
+        if(!r.ok)continue;
+        const data=await r.json();
+        if(!data||!data.avertizare)continue;  // răspuns invalid → încearcă proxy următor
+        const all=parseANMJsonWarnings(data);
+        const local=all.filter(warningMatchesDJ);
+        if(local.length){
+          // ANM are avertizări active pentru Dolj → sursă oficială, terminăm
           local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
-          if(local.length){
-            _owCache=local.slice(0,3);
-            _owCountryWide=0; _owFetchedFor=country; _owAllCount=parsed.length;
-            _owStatus='ok';
-            renderOfficialWarnings();
-            return;  // ANM direct a funcționat, nu mai e nevoie de Meteoalarm
-          }
-        }catch(e){ /* încearcă alt proxy ANM */ }
-      }
+          _owCache=local.slice(0,3);
+          _owCountryWide=0; _owFetchedFor=country; _owAllCount=all.length;
+          _owStatus='ok';
+          renderOfficialWarnings();
+          return;
+        }
+        // ANM a răspuns valid dar fără avertizări active pentru Dolj → cade pe Meteoalarm
+        break;
+      }catch(e){ /* încearcă proxy următor */ }
     }
-    // ANM direct a eșuat sau nu sunt avertizări → cade pe Meteoalarm (poate are mai multe)
+    // JSON ANM a eșuat → cade pe Meteoalarm (fallback)
   }
 
   const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
@@ -1218,10 +1216,11 @@ function warningMatchesLocation(w){
     const a=w.area.toLowerCase();
     if(kws.some(k=>a.includes(k)))return true;
   }
-  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Oltenia/Dolj/regiuni vecine ⇒ te privește
+  // 4) Proximitate: dacă ești în Dolj și avertizarea menționează Dolj/Oltenia/național
+  // NU includem județele vecine (Mehedinti, Olt, Vâlcea, Gorj) — altfel apar alerte greșite
   if((_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti'||inDoljBox(LAT,LON))&&w.area){
     const a=w.area.toLowerCase();
-    if(/dolj|oltenia|craiova|gorj|mehedin|olt\b|vâlcea|valcea|sud-?vest|sud-?est|muntenia|cea mai mare parte|toată țara|toata tara|întreaga țară|intreaga tara|național|national|majoritatea|cea mai mare parte a țării|toate regiunile/.test(a))return true;
+    if(/dolj|oltenia|craiova|cea mai mare parte|toată țara|toata tara|întreaga țară|intreaga tara|național|national|toate regiunile/.test(a))return true;
   }
 
   // 5) Degradare sigură: dacă avertizarea NU avea nicio informație geografică evaluabilă
@@ -1232,6 +1231,64 @@ function warningMatchesLocation(w){
     return false;   // nu o afișăm ca locală, dar e numărată în _owCountryWide
   }
   // avea info geografică dar nu s-a potrivit ⇒ chiar nu te privește
+  return false;
+}
+
+// ── Parsează răspunsul JSON de la ANM wp-json/meteoapi/v2/avertizari-generale ──
+// Returnează lista avertizărilor în formatul intern _owCache.
+// Câmpul "mesaj" din JSON conține HTML — extragem text plain pentru afișare.
+// Câmpul "simbol[].codJudet" conține codul județului (ex: "DJ" = Dolj).
+function parseANMJsonWarnings(data){
+  const CLR={galben:'2',portocaliu:'3',rosu:'4',roșu:'4'};
+  const out=[];
+  const now=Date.now();
+  for(const av of (data.avertizare||[])){
+    const a=av['@attributes']||{};
+    // Normalizare culoare (elimina diacritice pentru comparare robustă)
+    const culRaw=(a.numeCuloare||'').toLowerCase();
+    const culNorm=culRaw.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const level=CLR[culNorm]||CLR[culRaw]||'2';
+    // Data expirare
+    const expMs=a.dataExpirarii?new Date(a.dataExpirarii.replace('T',' ')).getTime():null;
+    if(expMs&&expMs<now)continue;  // avertizare expirată — omitem
+    // Extrage text plain din HTML-ul câmpului "mesaj" (textul oficial ANM complet)
+    let desc='';
+    if(a.mesaj){
+      const div=document.createElement('div');
+      div.innerHTML=a.mesaj;
+      desc=(div.textContent||div.innerText||'').trim().replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');
+    }
+    if(!desc)desc=[a.numeTipMesaj,a.intervalul,a.fenomeneVizate,a.zonaAfectata].filter(Boolean).join(' — ');
+    // Lista județelor acoperite (din array simbol, fără duplicate)
+    const judete=[...new Set((av.simbol||[]).map(s=>(s['@attributes']||{}).codJudet||'').filter(Boolean))];
+    out.push({
+      id:(a.dataAparitiei||'')+culNorm+(a.zonaAfectata||'').slice(0,20),
+      level, type:'',
+      event:`Cod ${a.numeCuloare||''} — ANM`,
+      headline:`${a.numeTipMesaj||'Avertizare'} COD ${(a.numeCuloare||'').toUpperCase()} — ${a.fenomeneVizate||''}`,
+      desc,
+      area:a.zonaAfectata||'',
+      effective:a.dataAparitiei,
+      expires:a.dataExpirarii,
+      expMs,
+      _judete:judete,
+      _countryWide:false,
+    });
+  }
+  return out;
+}
+
+// Filtrează avertizările ANM relevante pentru județul Dolj (Daneti, Craiova, Raieti).
+// Verifică codul județ "DJ" în lista simbol (primar), sau "dolj" explicit în text (secundar).
+// NU potrivim "oltenia" — e prea larg (include MH, GJ, OT, VL care NU sunt Dolj).
+function warningMatchesDJ(w){
+  // 1) Primar și precis: cod județ DJ în simboluri ANM
+  if(w._judete&&w._judete.includes('DJ'))return true;
+  // 2) Fallback textual strict: "dolj" explicit
+  const a=(w.area||'').toLowerCase();
+  if(/\bdolj\b/.test(a))return true;
+  // 3) Alerte naționale (acoperă toată România)
+  if(/toat[aă].*[tț]ar[aă]|ntreaga|intreaga|na[tț]ional|toate regiunile/.test(a))return true;
   return false;
 }
 
@@ -1285,11 +1342,17 @@ function renderOfficialWarnings(){
     const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
+    // Construiește textul descriptiv: folosim desc direct sau reconstruim din headline + zona + interval
+    const bodyText=w.desc||[
+      w.headline&&w.headline!==w.event?w.headline:'',
+      w.area?'Zone vizate: '+w.area:'',
+      perioada?'Interval: '+perioada:'',
+    ].filter(Boolean).join('\n')||'(fără detalii disponibile — verificați meteoromania.ro)';
     return `<div class="ow-panel ${L.cls}" id="ow-full-${idx}">`+
       `<div class="ow-panel-head">${L.ic} <b>${esc(titlu)}</b></div>`+
       (w.area?`<div class="ow-meta">📍 ${esc(w.area)}</div>`:'')+
       (perioada?`<div class="ow-meta">🕒 ${perioada}</div>`:'')+
-      (w.desc?`<div class="ow-panel-body">${esc(w.desc)}</div>`:'<div class="ow-panel-body">(fără text detaliat în avertizare)</div>')+
+      `<div class="ow-panel-body">${esc(bodyText)}</div>`+
     `</div>`;
   }).join('');
 
