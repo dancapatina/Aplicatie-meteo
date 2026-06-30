@@ -117,13 +117,6 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span class="temp" id="w-temp">—<span class="unit">°C</span></span>
         <span id="w-clock" style="font-size:clamp(1.6rem,7vw,2.4rem);font-weight:800;letter-spacing:.04em"></span>
-        <button onclick="event.stopPropagation();event.preventDefault();forceWidgetRefresh();" id="w-btn-refresh"
-          style="font-size:clamp(.72rem,2.8vw,.9rem);font-weight:800;padding:5px 11px;
-                 border-radius:8px;border:1px solid rgba(125,211,252,.35);
-                 background:rgba(14,79,115,.55);color:#7dd3fc;cursor:pointer;
-                 font-family:inherit;transition:opacity .15s;white-space:nowrap;
-                 backdrop-filter:blur(4px)"
-          data-i18n="refresh">↺ Actualizează</button>
       </div>
       <span class="sub" id="w-sub">Se încarcă…</span>
       <span class="loc" id="w-loc"></span>
@@ -133,6 +126,14 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   <div id="strip"></div>
   <span id="upd" style="position:absolute;bottom:8px;right:14px;font-size:.72rem;color:#46617f;font-weight:600"></span>
 </a>
+<button onclick="forceWidgetRefresh();" id="w-btn-refresh"
+  style="position:fixed;top:12px;right:14px;z-index:20;
+         font-size:clamp(.72rem,2.8vw,.9rem);font-weight:800;padding:5px 11px;
+         border-radius:8px;border:1px solid rgba(125,211,252,.35);
+         background:rgba(14,79,115,.55);color:#7dd3fc;cursor:pointer;
+         font-family:inherit;transition:opacity .15s;white-space:nowrap;
+         backdrop-filter:blur(4px)"
+  data-i18n="refresh">↺ Actualizează</button>
 
 <!-- Bara de controale — în afara link-ului, click-urile nu deschid aplicația principală -->
 <div id="ctrl-bar">
