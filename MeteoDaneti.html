@@ -152,6 +152,17 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   border-radius:14px;padding:3px 8px;font-weight:700;font-size:.7rem;line-height:1;
   font-family:inherit;animation:owPulse 1.6s ease-out}
 @keyframes owPulse{0%{box-shadow:0 0 0 rgba(255,255,255,0)}40%{box-shadow:0 0 14px rgba(255,255,255,.3)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
+/* ── Modal Radar Windy ─────────────────────────────────────────── */
+#radar-modal{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;background:#08131e}
+.radar-hdr{display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(8,19,30,.97);border-bottom:1px solid rgba(255,255,255,.12);flex-wrap:wrap;flex-shrink:0}
+.radar-layers{display:flex;gap:5px;flex-wrap:wrap}
+.radar-btn{background:rgba(255,255,255,.08);color:#9fb3c8;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 11px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.radar-btn.active{background:rgba(59,130,246,.35);color:#7dd3fc;border-color:#3b82f6}
+.radar-btn:hover{background:rgba(255,255,255,.15)}
+.radar-loc-lbl{flex:1;text-align:center;font-size:.75rem;color:#5a7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.radar-close{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:5px 13px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:auto}
+.radar-close:hover{background:rgba(239,68,68,.4)}
+@keyframes radarRing{0%{transform:scale(.7);opacity:.9}70%{transform:scale(1.35);opacity:.15}100%{transform:scale(1.35);opacity:0}}
 .ow-chip-ico{font-size:.92rem;line-height:1}
 .ow-chip-lbl{white-space:nowrap}
 .ow-chip-caret{font-size:.62rem;opacity:.8}
@@ -211,6 +222,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
     <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn" id="btn-now" onclick="forceLoad()" data-i18n="refresh">↺ Actualizează</button>
       <button class="btn" id="btn-notif" onclick="requestNotif()" style="background:#065f46" data-i18n="notif">🔔 Notificări</button>
+      <button class="btn" onclick="openRadar('rain')" style="background:#0c3654;color:#7dd3fc;border-color:rgba(59,130,246,.4)">🛰️ Radar</button>
     </div>
     <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
       <label style="font-size:.74rem;color:#9fb3c8;font-weight:600"><span data-i18n="refresh_at">⏲ Actualizare la:</span>
@@ -3206,6 +3218,96 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
+
+// ── Radar / Animație Windy 72h ──────────────────────────────────────
+let _radarLayer='rain';
+
+function openRadar(layer){
+  _radarLayer=layer||'rain';
+  const modal=el('radar-modal');
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  document.querySelectorAll('.radar-btn').forEach(b=>b.classList.remove('active'));
+  const ab=el('radar-btn-'+_radarLayer);if(ab)ab.classList.add('active');
+  const locShort=(LOC_NAME||'Locație').split(',')[0].trim();
+  const lonStr=(LON>=0?LON.toFixed(2)+'°E':Math.abs(LON).toFixed(2)+'°V');
+  const rl=el('radar-loc-lbl');
+  if(rl)rl.textContent=`📍 ${locShort} · ${LAT.toFixed(2)}°N ${lonStr}`;
+  const nl=el('radar-name-lbl');
+  if(nl)nl.textContent=locShort;
+  _updateRadarFrame();
+}
+
+function setRadarLayer(layer){
+  _radarLayer=layer;
+  document.querySelectorAll('.radar-btn').forEach(b=>b.classList.remove('active'));
+  const ab=el('radar-btn-'+layer);if(ab)ab.classList.add('active');
+  _updateRadarFrame();
+}
+
+function closeRadar(){
+  el('radar-modal').style.display='none';
+  el('radar-frame').src='';     // oprește încărcarea iframului
+  document.body.style.overflow='';
+}
+
+function _updateRadarFrame(){
+  const z=8,lat=LAT.toFixed(4),lon=LON.toFixed(4);
+  // Windy embed: centrează pe locația curentă, modelul ECMWF, layer selectat
+  // detailLat/detailLon = markerul cu detalii pt locația exactă
+  const url='https://embed.windy.com/embed.html?type=map&location=coordinates'
+    +'&metricRain=mm&metricTemp=%C2%B0C&metricWind=km%2Fh'
+    +'&zoom='+z+'&overlay='+_radarLayer+'&product=ecmwf&level=surface'
+    +'&lat='+lat+'&lon='+lon+'&detailLat='+lat+'&detailLon='+lon;
+  el('radar-frame').src=url;
+}
+
+// Închide cu tasta Escape
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){const m=el('radar-modal');if(m&&m.style.display==='flex')closeRadar();}
+});
 </script>
+<!-- ── Modal Radar / Animație Windy 72h ────────────────────────────── -->
+<div id="radar-modal">
+  <div class="radar-hdr">
+    <div class="radar-layers">
+      <button class="radar-btn active" id="radar-btn-rain"   onclick="setRadarLayer('rain')">🌧 Ploaie</button>
+      <button class="radar-btn"        id="radar-btn-wind"   onclick="setRadarLayer('wind')">💨 Vânt</button>
+      <button class="radar-btn"        id="radar-btn-temp"   onclick="setRadarLayer('temp')">🌡 Temp.</button>
+      <button class="radar-btn"        id="radar-btn-clouds" onclick="setRadarLayer('clouds')">☁ Nori</button>
+      <button class="radar-btn"        id="radar-btn-pressure" onclick="setRadarLayer('pressure')">🌀 Presiune</button>
+    </div>
+    <span id="radar-loc-lbl" class="radar-loc-lbl"></span>
+    <button class="radar-close" onclick="closeRadar()">✕ Închide</button>
+  </div>
+  <!-- Container relativ: iframe Windy + cerc locație suprapus -->
+  <div style="position:relative;flex:1;min-height:0;overflow:hidden">
+    <iframe id="radar-frame" src=""
+      style="position:absolute;inset:0;width:100%;height:100%;border:none"
+      allow="geolocation" loading="lazy"></iframe>
+    <!-- Cerc colorat la 50%/50% = locația selectată (harta e mereu centrată pe ea) -->
+    <div id="radar-marker" style="
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      pointer-events:none;z-index:5;display:flex;align-items:center;justify-content:center">
+      <!-- Inel exterior pulsant -->
+      <div style="position:absolute;width:64px;height:64px;border-radius:50%;
+        border:2px solid rgba(251,191,36,.5);animation:radarRing 2.2s ease-out infinite"></div>
+      <!-- Inel mijlociu -->
+      <div style="position:absolute;width:42px;height:42px;border-radius:50%;
+        border:2.5px solid rgba(251,191,36,.8);animation:radarRing 2.2s ease-out infinite .4s"></div>
+      <!-- Cerc principal colorat -->
+      <div style="width:22px;height:22px;border-radius:50%;
+        background:rgba(251,191,36,.25);border:3px solid #fbbf24;
+        box-shadow:0 0 12px rgba(251,191,36,.7),0 0 24px rgba(251,191,36,.3)"></div>
+    </div>
+    <!-- Etichetă locație sub cerc -->
+    <div id="radar-name-lbl" style="
+      position:absolute;left:50%;top:calc(50% + 38px);transform:translateX(-50%);
+      pointer-events:none;z-index:5;background:rgba(8,19,30,.82);
+      color:#fbbf24;font-size:.72rem;font-weight:700;padding:2px 9px;
+      border-radius:10px;border:1px solid rgba(251,191,36,.4);
+      white-space:nowrap;letter-spacing:.3px"></div>
+  </div>
+</div>
 </body>
 </html>
