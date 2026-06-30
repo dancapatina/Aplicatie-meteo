@@ -45,15 +45,15 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
 .sep{color:#4a6070}
 
 #strip{display:flex;gap:3px;flex-shrink:0}
-#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:7px;padding:4px 1px}
-#strip .dname{font-size:clamp(.6rem,2vw,.78rem);color:#9fb3c8;font-weight:700}
-#strip .dico{font-size:clamp(.95rem,4vw,1.4rem);line-height:1.2;margin:1px 0}
-#strip .dmax{font-size:clamp(.66rem,2.5vw,.88rem);font-weight:800;color:#fbbf24}
-#strip .dmin{font-size:clamp(.6rem,2.2vw,.8rem);color:#7dd3fc;font-weight:700}
-#strip .ddet{display:flex;flex-direction:column;gap:1px;margin-top:2px;padding-top:2px;border-top:1px solid rgba(255,255,255,.08)}
-#strip .drain{font-size:clamp(.52rem,1.8vw,.68rem);font-weight:800;color:#60a5fa}
-#strip .dwind{font-size:clamp(.52rem,1.8vw,.68rem);font-weight:800;color:#34d399}
-#strip .ddew{font-size:clamp(.5rem,1.7vw,.66rem);font-weight:800;color:#22d3ee}
+#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:7px;padding:5px 2px}
+#strip .dname{font-size:clamp(.72rem,2.2vw,.92rem);color:#9fb3c8;font-weight:700}
+#strip .dico{font-size:clamp(1.1rem,4.5vw,1.6rem);line-height:1.2;margin:2px 0}
+#strip .dmax{font-size:clamp(.8rem,3vw,1.05rem);font-weight:800;color:#fbbf24}
+#strip .dmin{font-size:clamp(.72rem,2.6vw,.95rem);color:#7dd3fc;font-weight:700}
+#strip .ddet{display:flex;flex-direction:column;gap:2px;margin-top:3px;padding-top:3px;border-top:1px solid rgba(255,255,255,.08)}
+#strip .drain{font-size:clamp(.62rem,2vw,.78rem);font-weight:800;color:#60a5fa}
+#strip .dwind{font-size:clamp(.62rem,2vw,.78rem);font-weight:800;color:#34d399}
+#strip .ddew{font-size:clamp(.6rem,1.9vw,.75rem);font-weight:800;color:#22d3ee}
 
 #upd{position:fixed;top:6px;right:10px;font-size:.66rem;color:#46617f;font-weight:600;z-index:50}
 /* Avertizări: fixate sus, deasupra cardului, ca să nu deschidă aplicația la click */
@@ -284,6 +284,8 @@ function groupIvs(hrs){
   return out.map(iv=>iv.s===iv.e?fH(iv.s):`${fH(iv.s)}–${fH(Math.min(iv.e+1,24))}`);
 }
 
+function fmtIvs(arr){return arr.length?arr.join(' '):t('no_interval');}
+
 function tempCross(dayHrs,warm){
   const m=dayHrs.filter(h=>h.tMean!=null&&(warm?h.tMean>=HEAT_T:h.tMean<=FROST_T));
   if(!m.length)return null;
@@ -304,7 +306,7 @@ function nextRainEvent(hours){
       while(j<fut.length&&(fut[j].pMean||0)>=rateThr){total+=fut[j].pMean||0;j++;}
       if(total>RAIN_EVENT_MM){
         const sH=fut[i].h,eH=fut[j-1].h+1;
-        const endTxt=eH>=24?'00:00 (ziua urm.)':fH(eH);
+        const endTxt=eH>=24?'00:00 ('+t('next_day')+')':fH(eH);
         return{dk:fut[i].dk,total:Math.round(total*10)/10,from:fH(sH),to:endTxt};
       }
       i=j;                                  // episodul curent nu a calificat ⇒ sare la oră de DUPĂ pauză, caută următorul episod
@@ -731,15 +733,14 @@ function checkNotifications(hours){
           markNotified(key);
           const from=fH(ev.s.h);
           const toH=ev.e.h+1;
-          const to=toH>=24?'00:00 (ziua urm.)':fH(toH);
+          const to=toH>=24?'00:00 ('+t('next_day')+')':fH(toH);
           const hi=lvl==='high';
-          const prefix=hi?('Șanse >'+P_HIGH+'% '):'E posibil ';
           if(type==='rain')
-            fireNotif(hi?('🌧 Ploaie probabilă >'+P_HIGH+'%'):'🌧 Posibilă ploaie',
-              prefix+'să plouă de la ora '+from+' până la ora '+to);
+            fireNotif(hi?(t('notify_rain_prob')+P_HIGH+'%'):t('notify_rain_pos'),
+              (hi?t('chance_high')+P_HIGH+'% ':t('possible')+' ')+t('notify_rain_from')+' '+from+' '+t('notify_rain_to')+' '+to);
           else
-            fireNotif(hi?('💨 Vânt probabil >'+P_HIGH+'%'):'💨 Posibil vânt puternic',
-              prefix+'să bată vântul de la ora '+from+' până la ora '+to);
+            fireNotif(hi?(t('notify_wind_prob')+P_HIGH+'%'):t('notify_wind_pos'),
+              (hi?t('chance_high')+P_HIGH+'% ':t('possible')+' ')+t('notify_wind_from')+' '+from+' '+t('notify_rain_to')+' '+to);
         }
       });
     });
@@ -916,6 +917,13 @@ function render(hours){
   if(!L.length){
     L.push(`<div class="line" style="color:#8aa0b8;font-weight:500">${t('no_chances')}</div>`);
   }
+  // Avertizare vânt >20 km/h — intervale orare din ziua curentă (ore rămase + mâine)
+  const WIND_ALERT_THR=20;
+  const todayWindHrs=dayHours(hours,dk0).filter(h=>h.h>=h0now&&(h.wMean||0)>WIND_ALERT_THR).map(h=>h.h);
+  const windAlertIvs=groupIvs(todayWindHrs);
+  if(windAlertIvs.length){
+    L.push(`<div class="line" style="background:rgba(251,191,36,.1);border-left:3px solid #fbbf24;padding-left:5px;border-radius:4px;color:#fbbf24;font-weight:800">${t('wind_alert')}${WIND_ALERT_THR} km/h: ${fmtIvs(windAlertIvs)}</div>`);
+  }
   el('lines').innerHTML=L.join('');
 
   // ── Banda zilelor: TOATE cele 7 zile — etichete înlocuite cu iconițe pt compactare ──
@@ -925,17 +933,17 @@ function render(hours){
     const dh=dayHours(hours,dk);
     const midDay=dh.find(h=>h.h===14)||dh[Math.floor(dh.length/2)]||null;
     const ic=midDay?condIcon(midDay).i:'—';
-    const nm=['Du','Lu','Ma','Mi','Jo','Vi','Sâ'][dow(dk)];
+    const nm=getZileScurt()[dow(dk)];
     const rainTxt=s&&s.totP!=null?(Math.round(s.totP*10)/10).toFixed(1).replace('.',','):'—';
     const windTxt=s&&s.wmax!=null?Math.round(s.wmax):'—';
     const arrow=s?windArrow(s.predDir):'';
-    const dewTxt=s&&s.dpAvg!=null?s.dpAvg+'°':'—';
+    const dewTxt=s&&s.dpAvg!=null?s.dpAvg+'°C':'—';
     return `<div class="d"><div class="dname">${nm}</div><div class="dico">${ic}</div>`+
-      `<div class="dmax">${s&&s.tmax!=null?s.tmax+'°':'—'}</div>`+
-      `<div class="dmin">${s&&s.tmin!=null?s.tmin+'°':'—'}</div>`+
+      `<div class="dmax">${s&&s.tmax!=null?s.tmax+'°C':'—'}</div>`+
+      `<div class="dmin">${s&&s.tmin!=null?s.tmin+'°C':'—'}</div>`+
       `<div class="ddet">`+
-        `<div class="drain">💧 ${rainTxt}</div>`+
-        `<div class="dwind">💨 ${windTxt} ${arrow}</div>`+
+        `<div class="drain">💧 ${rainTxt!=='—'?rainTxt+' l/mp':'—'}</div>`+
+        `<div class="dwind">💨 ${windTxt!=='—'?windTxt+' km/h '+arrow:arrow||'—'}</div>`+
         `<div class="ddew">🌫 ${dewTxt}</div>`+
       `</div></div>`;
   }).join('');
@@ -1353,8 +1361,10 @@ const I18N={
     rain_prob_low:'Ploaie >{rain} l/m² & prob. >{prob}%',
     wind_prob_low:'Vânt >{wind} km/h & prob. >{prob}%',
     dew_point:'Punct de rouă',
-    prob_interval:'Interval probabil (ensemble P10–P90)',},
-  en:{
+    prob_interval:'Interval probabil (ensemble P10–P90)',
+    wind_alert:'⚠️ Vânt >',
+    no_interval:'— niciun interval',
+    next_day:'ziua urm.',},  en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
@@ -1427,7 +1437,10 @@ const I18N={
     rain_prob_low:'Rain >{rain} l/m² & prob. >{prob}%',
     wind_prob_low:'Wind >{wind} km/h & prob. >{prob}%',
     dew_point:'Dew point',
-    prob_interval:'Probable range (ensemble P10–P90)',},
+    prob_interval:'Probable range (ensemble P10–P90)',
+    wind_alert:'⚠️ Wind >',
+    no_interval:'— no interval',
+    next_day:'next day',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -1501,7 +1514,10 @@ const I18N={
     rain_prob_low:'Pluie >{rain} l/m² & prob. >{prob}%',
     wind_prob_low:'Vent >{wind} km/h & prob. >{prob}%',
     dew_point:'Point de rosée',
-    prob_interval:'Plage probable (ensemble P10–P90)',},
+    prob_interval:'Plage probable (ensemble P10–P90)',
+    wind_alert:'⚠️ Vent >',
+    no_interval:'— aucun intervalle',
+    next_day:'j. suiv.',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -1575,7 +1591,10 @@ const I18N={
     rain_prob_low:'Lluvia >{rain} l/m² & prob. >{prob}%',
     wind_prob_low:'Viento >{wind} km/h & prob. >{prob}%',
     dew_point:'Punto de rocío',
-    prob_interval:'Rango probable (ensemble P10–P90)',},
+    prob_interval:'Rango probable (ensemble P10–P90)',
+    wind_alert:'⚠️ Viento >',
+    no_interval:'— sin intervalo',
+    next_day:'día sig.',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -1649,7 +1668,10 @@ const I18N={
     rain_prob_low:'Regen >{rain} l/m² & Wahr. >{prob}%',
     wind_prob_low:'Wind >{wind} km/h & Wahr. >{prob}%',
     dew_point:'Taupunkt',
-    prob_interval:'Wahrsch. Bereich (Ensemble P10–P90)',},
+    prob_interval:'Wahrsch. Bereich (Ensemble P10–P90)',
+    wind_alert:'⚠️ Wind >',
+    no_interval:'— kein Intervall',
+    next_day:'nächst. Tag',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -1723,7 +1745,10 @@ const I18N={
     rain_prob_low:'Pioggia >{rain} l/m² & prob. >{prob}%',
     wind_prob_low:'Vento >{wind} km/h & prob. >{prob}%',
     dew_point:'Punto di rugiada',
-    prob_interval:'Intervallo probabile (ensemble P10–P90)',},
+    prob_interval:'Intervallo probabile (ensemble P10–P90)',
+    wind_alert:'⚠️ Vento >',
+    no_interval:'— nessun intervallo',
+    next_day:'giorno succ.',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -1780,6 +1805,7 @@ function detectLang(){
   }catch(e){return 'ro';}
 }
 function t(key){return (I18N[LANG]&&I18N[LANG][key])||I18N.ro[key]||key;}
+function tpl(key,vars){let s=t(key);for(const[k,v]of Object.entries(vars))s=s.replace('{'+k+'}',v);return s;}
 function applyLang(){
   // texte cu data-i18n
   document.querySelectorAll('[data-i18n]').forEach(elm=>{
@@ -1883,6 +1909,7 @@ function setLoc(kind){
   document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
   el(L.id).classList.add('active');
   if(countryFromTZ(TZ)!==_owFetchedFor){_owCache=[];_owStatus='';_owCountryWide=0;renderOfficialWarnings();}
+  tickWidgetClock();
   saveWidgetState();
   loadWidget();
 }
@@ -1980,8 +2007,8 @@ function cycleClockColor(){
 
 function tickWidgetClock(){
   const c=el('w-clock');if(!c)return;
-  try{c.textContent=new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',timeZone:TZ});}
-  catch(e){c.textContent=new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}
+  try{c.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});}
+  catch(e){c.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
 }
 tickWidgetClock();setInterval(tickWidgetClock,1000);
 
