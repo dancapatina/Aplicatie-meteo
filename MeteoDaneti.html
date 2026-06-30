@@ -994,9 +994,11 @@ async function fetchOfficialWarnings(){
       u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
       u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     ];
-    for(const wrap of anmWrappers){
+    for(let wi=0;wi<anmWrappers.length;wi++){
+      const wrap=anmWrappers[wi];
+      const ms=wi===0?4000:9000;  // direct: 4s (CORS eșuează rapid); proxy: 9s
       try{
-        const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+        const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),ms);
         const r=await fetch(wrap(ANM_JSON),{signal:ctrl.signal});
         clearTimeout(tid);
         if(!r.ok)continue;
@@ -1013,7 +1015,8 @@ async function fetchOfficialWarnings(){
           renderOfficialWarnings();
           return;
         }
-        // ANM a răspuns valid dar fără avertizări active pentru Dolj → cade pe Meteoalarm
+        // ANM a răspuns valid dar fără alerte active pentru Dolj
+        // → cade pe Meteoalarm care poate avea alerte mai recente
         break;
       }catch(e){ /* încearcă proxy următor */ }
     }
@@ -1024,6 +1027,7 @@ async function fetchOfficialWarnings(){
   // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
     u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u=>`https://proxy.cors.sh/${u}`,
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
     u=>`https://thingproxy.freeboard.io/fetch/${u}`,
@@ -1040,7 +1044,7 @@ async function fetchOfficialWarnings(){
       if(!r.ok){lastErr='HTTP '+r.status;continue;}
       let txt=await r.text();
       // allorigins /get întoarce JSON {contents:"..."} — extragem
-      if(pi===4){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
+      if(pi===5){try{const j=JSON.parse(txt);txt=j.contents||'';}catch(e){}}
       if(!txt||txt.length<50){lastErr='răspuns gol';continue;}
       const parsed=parseMeteoalarmAtom(txt);
       parsed.forEach(w=>{w._countryWide=false;});
@@ -1049,21 +1053,53 @@ async function fetchOfficialWarnings(){
       local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
       _owCache=local.slice(0,3);
       _owCountryWide=parsed.filter(w=>w._countryWide).length;
-      _owCountryWide=parsed.filter(w=>w._countryWide).length;
       _owFetchedFor=country;
-      _owAllCount=parsed.length;   // câte avertizări sunt în țară (total)
+      _owAllCount=parsed.length;
       _owStatus = local.length ? 'ok' : (_owCountryWide>0 ? 'country-only' : (parsed.length>0?'other-regions':'no-warnings'));
       renderOfficialWarnings();
       return;
     }catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':'rețea'; }
   }
   // toate proxy-urile au eșuat
-  _owCache=[]; _owStatus='proxy-fail'; _owErrDetail=lastErr;
+  // Pentru România: ascundem bara (nu afișăm eroare — sursa primară ANM a eșuat deja mai sus)
+  // Pentru alte țări: afișăm eroarea standard
+  _owCache=[];
+  _owStatus=(country==='romania')?'no-warnings':'proxy-fail';
+  _owErrDetail=lastErr;
   renderOfficialWarnings();
 }
 
 // Parsează feed-ul Atom Meteoalarm. Fiecare <entry> conține <cap:event>, <cap:effective>,
 // <cap:expires>, <cap:expires>, parametri awareness (tip+nivel) și descriere.
+// Curăță textul Meteoalarm de câmpuri tehnice CAP (awareness_level, awareness_type,
+// date de la/pana la, județe standalone). Funcționează atât pentru format multi-linie
+// cât și pentru format inline (toate pe aceeași linie cu ;).
+function stripMeteoalarmMeta(txt){
+  if(!txt)return '';
+  // ETAPA 1: elimină TOATĂ linia de la awareness_level/type până la end-of-line (inclusiv ; red; Extreme)
+  txt=txt
+    .replace(/awareness[_\s\-]level\s*:\s*[^\n\r]*/gi,'')
+    .replace(/awareness[_\s\-]type\s*:\s*[^\n\r]*/gi,'');
+  // ETAPA 2: filtrare linie cu linie pentru restul câmpurilor
+  return txt.split(/\r?\n/)
+    .filter(raw=>{
+      const l=(raw||'').trim().toLowerCase();
+      if(!l)return false;
+      if(/awareness/i.test(l))return false;  // fallback: orice rest de awareness
+      if(/^de la\s*:/.test(l))return false;
+      if(/^p[aâ]n[aă]\s*la\s*:/.test(l))return false;
+      if(/^until\s*:/.test(l))return false;
+      if(/^from\s*:/.test(l))return false;
+      if(/^effective\s*:/.test(l))return false;
+      if(/^expires\s*:/.test(l))return false;
+      // Linii scurte fără cifre care încep cu majusculă = județ/regiune standalone
+      const trimmed=raw.trim();
+      if(trimmed.length<=30&&!/\d/.test(trimmed)&&!/[;:()\[\]]/.test(trimmed)&&/^[A-ZĂÂÎȘȚ]/.test(trimmed))return false;
+      return true;
+    })
+    .join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function parseMeteoalarmAtom(xmlText){
   const out=[];
   try{
@@ -1117,8 +1153,12 @@ function parseMeteoalarmAtom(xmlText){
       const content=get('content')||localText(en,'content');
       let desc=[description,instruction].filter(Boolean).join('\n\n');
       if(!desc)desc=summary||content||'';
-      // dacă summary e mai bogat decât description (uneori ANM pune tot în summary), îl preferăm
-      if(summary&&summary.length>desc.length)desc=summary;
+      // Preferăm summary NUMAI dacă nu conține metadata Meteoalarm (awareness_level = câmp tehnic CAP)
+      if(summary&&summary.length>desc.length&&!/awareness[_ ]level/i.test(summary))desc=summary;
+      // Curăță câmpurile tehnice CAP/Meteoalarm din text
+      desc=stripMeteoalarmMeta(desc);
+      // Fallback nuclear: dacă awareness a supraviețuit oricărui format, golim desc-ul
+      if(/awareness/i.test(desc))desc='';
       const area=localText(en,'areaDesc');
 
       // poligoane
@@ -1343,7 +1383,7 @@ function renderOfficialWarnings(){
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
     // Construiește textul descriptiv: folosim desc direct sau reconstruim din headline + zona + interval
-    const bodyText=w.desc||[
+    const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
       w.headline&&w.headline!==w.event?w.headline:'',
       w.area?'Zone vizate: '+w.area:'',
       perioada?'Interval: '+perioada:'',
