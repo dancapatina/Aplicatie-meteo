@@ -1223,6 +1223,29 @@ async function fetchOfficialWarnings(){
     }catch(e){}}
     // JSON ANM a eșuat sau fără alerte → cade pe Meteoalarm (fallback)
   }
+
+  // ── Sursă primară pentru UK: Met Office RSS (Yorkshire & Humber) ──
+  if(country==='united-kingdom'){
+    const MO_YH='https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/yh';
+    const moWraps=[u=>u,u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,u=>`https://proxy.cors.sh/${u}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`];
+    for(let wi=0;wi<moWraps.length;wi++){const wrap=moWraps[wi];const ms=wi===0?4000:9000;try{
+      const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),ms);
+      const r=await fetch(wrap(MO_YH),{signal:ctrl.signal});clearTimeout(tid);
+      if(!r.ok)continue;
+      const txt=await r.text();if(!txt||txt.length<80)continue;
+      const all=parseMetOfficeRSS(txt);
+      const local=all.filter(w=>warningMatchesYork(w));
+      if(local.length){
+        local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
+        _owCache=local.slice(0,3);_owCountryWide=0;_owFetchedFor=country;_owAllCount=all.length;
+        _owStatus='ok';renderOfficialWarnings();return;
+      }
+      _owCache=[];_owCountryWide=0;_owFetchedFor=country;_owAllCount=0;
+      _owStatus='no-warnings';renderOfficialWarnings();return;
+    }catch(e){}}
+    // Met Office yh inaccessibil → cade pe Meteoalarm
+  }
+
     const feed=`https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-${country}`;
   // Mai multe proxy-uri CORS de rezervă — dacă unul pică, încearcă următorul
   const proxies=[
@@ -1308,6 +1331,57 @@ function warningMatchesDJ(w){
   const a=(w.area||'').toLowerCase();
   if(/\bdolj\b/.test(a))return true;
   if(/toat[aă].*[tț]ar[aă]|ntreaga|intreaga|na[tț]ional|toate regiunile/.test(a))return true;
+  return false;
+}
+
+// ── Parser RSS Met Office UK (format PWSCache/WarningsRSS) ──
+// Feed: https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/yh
+// Titlu exemplu: "Yellow warning of rain affecting Yorkshire & Humber valid from 1200 Tue 01 Jul 2026 to 1800 Tue 01 Jul 2026"
+function parseMetOfficeRSS(xmlText){
+  const out=[];
+  try{
+    const doc=new DOMParser().parseFromString(xmlText,'text/xml');
+    const items=doc.querySelectorAll('item');
+    const now=Date.now();
+    const CLR={yellow:'2',amber:'3',orange:'3',red:'4'};
+    const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const parseMetDt=s=>{
+      const m=(s||'').trim().match(/^(\d{2})(\d{2})\s+(?:\w+\s+)?(\d{1,2})\s+(\w{3})\s+(\d{4})$/i);
+      if(!m)return null;
+      const mo=MON[(m[4]||'').toLowerCase().slice(0,3)];
+      if(mo==null)return null;
+      return new Date(Date.UTC(+m[5],mo,+m[3],+m[1],+m[2]));
+    };
+    items.forEach(item=>{
+      const get=tag=>(item.querySelector(tag)||{}).textContent||'';
+      const title=get('title').trim();
+      const desc=get('description').trim();
+      const tm=title.match(/^(\w+)\s+warning\s+of\s+(\w[\w\s]*?)\s+affecting\s+(.+?)\s+valid\s+from\s+(.+?)\s+to\s+(.+?)$/i);
+      if(!tm)return;
+      const [,colorStr,type,area,fromStr,toStr]=tm;
+      const level=CLR[(colorStr||'').toLowerCase()]||'2';
+      const expDate=parseMetDt(toStr);
+      const expMs=expDate?expDate.getTime():null;
+      if(expMs&&expMs<now)return;
+      const effDate=parseMetDt(fromStr);
+      out.push({
+        id:title,level,type:'',
+        event:`${colorStr} Warning — Met Office`,
+        headline:`Met Office ${colorStr.toUpperCase()} warning of ${type}`,
+        desc:desc||title,area,
+        effective:effDate?effDate.toISOString():'',
+        expires:expDate?expDate.toISOString():'',
+        expMs,_countryWide:false,_judete:[],
+      });
+    });
+  }catch(e){}
+  return out;
+}
+
+function warningMatchesYork(w){
+  const a=(w.area||'').toLowerCase();
+  if(/yorkshire|humber|north\s*york/i.test(a))return true;
+  if(/england|united.kingdom|nationwide/i.test(a))return true;
   return false;
 }
 
