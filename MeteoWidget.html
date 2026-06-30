@@ -108,6 +108,17 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   30%{border-color:#10b981;box-shadow:0 0 16px rgba(16,185,129,.3)}
   100%{border-color:rgba(255,255,255,.08)}
 }
+/* ── Modal Radar Windy ─────────────────────────────────────────── */
+#radar-modal{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;background:#08131e}
+.radar-hdr{display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(8,19,30,.97);border-bottom:1px solid rgba(255,255,255,.12);flex-wrap:wrap;flex-shrink:0}
+.radar-layers{display:flex;gap:4px;flex-wrap:wrap}
+.radar-btn{background:rgba(255,255,255,.08);color:#9fb3c8;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:4px 10px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.radar-btn.active{background:rgba(59,130,246,.35);color:#7dd3fc;border-color:#3b82f6}
+.radar-btn:hover{background:rgba(255,255,255,.15)}
+.radar-loc-lbl{flex:1;text-align:center;font-size:.72rem;color:#5a7390;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.radar-close{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:4px 12px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:auto}
+.radar-close:hover{background:rgba(239,68,68,.4)}
+@keyframes radarRing{0%{transform:scale(.7);opacity:.9}70%{transform:scale(1.35);opacity:.15}100%{transform:scale(1.35);opacity:0}}
 </style>
 </head>
 <body>
@@ -170,6 +181,15 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
       <button class="src-btn"        id="btn-toate" onclick="setSrc('toate')" data-i18n="all">Toate</button>
       <button class="src-btn"        id="btn-none"  onclick="setSrc('none')" data-i18n="none">Niciuna</button>
     </div>
+  </div>
+  <div class="ctrl-row" style="margin-top:1px">
+    <button onclick="openRadar('rain')"
+      style="width:100%;background:rgba(14,79,115,.35);color:#7dd3fc;border:1px solid rgba(59,130,246,.35);
+             border-radius:8px;padding:7px 10px;font-size:.78rem;font-weight:800;cursor:pointer;
+             font-family:inherit;letter-spacing:.3px;transition:background .15s"
+      onmouseover="this.style.background='rgba(14,79,115,.6)'" onmouseout="this.style.background='rgba(14,79,115,.35)'">
+      🛰️ Radar ploaie &amp; vânt · animație 72h
+    </button>
   </div>
   <div class="ctrl-row ref-row">
     <label data-i18n="refresh_at">⏲ Actualizare:</label>
@@ -2469,6 +2489,88 @@ if('serviceWorker' in navigator){
 }
 // Reajustează butonul Actualizare la redimensionare ecran (orientare landscape/portrait)
 window.addEventListener('resize',positionRefreshBtn);
+
+// ── Radar / Animație Windy 72h ──────────────────────────────────────
+let _radarLayer='rain';
+
+function openRadar(layer){
+  _radarLayer=layer||'rain';
+  const modal=el('radar-modal');
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  document.querySelectorAll('.radar-btn').forEach(b=>b.classList.remove('active'));
+  const ab=el('radar-btn-'+_radarLayer);if(ab)ab.classList.add('active');
+  const locShort=(LOC_NAME||'Locație').split(',')[0].trim();
+  const lonStr=(LON>=0?LON.toFixed(2)+'°E':Math.abs(LON).toFixed(2)+'°V');
+  const rl=el('radar-loc-lbl');
+  if(rl)rl.textContent=`📍 ${locShort} · ${LAT.toFixed(2)}°N ${lonStr}`;
+  const nl=el('radar-name-lbl');
+  if(nl)nl.textContent=locShort;
+  _updateRadarFrame();
+}
+
+function setRadarLayer(layer){
+  _radarLayer=layer;
+  document.querySelectorAll('.radar-btn').forEach(b=>b.classList.remove('active'));
+  const ab=el('radar-btn-'+layer);if(ab)ab.classList.add('active');
+  _updateRadarFrame();
+}
+
+function closeRadar(){
+  el('radar-modal').style.display='none';
+  el('radar-frame').src='';
+  document.body.style.overflow='';
+}
+
+function _updateRadarFrame(){
+  const z=8,lat=LAT.toFixed(4),lon=LON.toFixed(4);
+  const url='https://embed.windy.com/embed.html?type=map&location=coordinates'
+    +'&metricRain=mm&metricTemp=%C2%B0C&metricWind=km%2Fh'
+    +'&zoom='+z+'&overlay='+_radarLayer+'&product=ecmwf&level=surface'
+    +'&lat='+lat+'&lon='+lon+'&detailLat='+lat+'&detailLon='+lon;
+  el('radar-frame').src=url;
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){const m=el('radar-modal');if(m&&m.style.display==='flex')closeRadar();}
+});
 </script>
+
+<!-- ── Modal Radar / Animație Windy 72h ── -->
+<div id="radar-modal">
+  <div class="radar-hdr">
+    <div class="radar-layers">
+      <button class="radar-btn active" id="radar-btn-rain"     onclick="setRadarLayer('rain')">🌧 Ploaie</button>
+      <button class="radar-btn"        id="radar-btn-wind"     onclick="setRadarLayer('wind')">💨 Vânt</button>
+      <button class="radar-btn"        id="radar-btn-temp"     onclick="setRadarLayer('temp')">🌡 Temp.</button>
+      <button class="radar-btn"        id="radar-btn-clouds"   onclick="setRadarLayer('clouds')">☁ Nori</button>
+      <button class="radar-btn"        id="radar-btn-pressure" onclick="setRadarLayer('pressure')">🌀 Presiune</button>
+    </div>
+    <span id="radar-loc-lbl" class="radar-loc-lbl"></span>
+    <button class="radar-close" onclick="closeRadar()">✕ Închide</button>
+  </div>
+  <div style="position:relative;flex:1;min-height:0;overflow:hidden">
+    <iframe id="radar-frame" src=""
+      style="position:absolute;inset:0;width:100%;height:100%;border:none"
+      allow="geolocation" loading="lazy"></iframe>
+    <div id="radar-marker" style="
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      pointer-events:none;z-index:5;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;width:64px;height:64px;border-radius:50%;
+        border:2px solid rgba(251,191,36,.5);animation:radarRing 2.2s ease-out infinite"></div>
+      <div style="position:absolute;width:42px;height:42px;border-radius:50%;
+        border:2.5px solid rgba(251,191,36,.8);animation:radarRing 2.2s ease-out infinite .4s"></div>
+      <div style="width:22px;height:22px;border-radius:50%;
+        background:rgba(251,191,36,.25);border:3px solid #fbbf24;
+        box-shadow:0 0 12px rgba(251,191,36,.7),0 0 24px rgba(251,191,36,.3)"></div>
+    </div>
+    <div id="radar-name-lbl" style="
+      position:absolute;left:50%;top:calc(50% + 38px);transform:translateX(-50%);
+      pointer-events:none;z-index:5;background:rgba(8,19,30,.82);
+      color:#fbbf24;font-size:.72rem;font-weight:700;padding:2px 9px;
+      border-radius:10px;border:1px solid rgba(251,191,36,.4);
+      white-space:nowrap;letter-spacing:.3px"></div>
+  </div>
+</div>
 </body>
 </html>
