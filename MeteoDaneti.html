@@ -135,6 +135,9 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nowcast .nc-ico{font-size:2rem;line-height:1}
 .nowcast .nc-cond{font-size:1.15rem;font-weight:700;color:#cfe0f2}
 .nowcast .nc-sub{margin-top:7px;font-size:.92rem;color:#aac1da;display:flex;gap:16px;flex-wrap:wrap}
+.nc-rel-prob{margin-top:6px;padding:5px 9px;background:rgba(255,255,255,.05);border-radius:7px;font-size:.75rem;display:flex;flex-direction:column;gap:4px;border:1px solid rgba(255,255,255,.07)}
+.rp-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.rp-lbl{color:#5a7390;min-width:86px;font-size:.7rem}
 .nowcast .nc-sub b{color:#fff}
 .nowcast .nc-hi{color:#fbbf24;font-weight:800}
 .nowcast .nc-rainevt{margin-top:8px;padding:7px 11px;background:rgba(56,189,248,.14);border:1px solid rgba(125,211,252,.35);
@@ -670,18 +673,272 @@ function computeHour(e){
   };
 }
 // ═══════════════════════════════════════════════════════════════════════════
-// AUTO-ÎNVĂȚARE / AUTO-CORECȚIE (bias-correction adaptiv, stil MOS)
-// Salvează predicțiile, le compară cu observațiile reale când ora devine trecut,
-// învață eroarea sistematică (bias) și o aplică la predicțiile viitoare.
-// Stocare per-locație în localStorage. Corectează DOAR erori sistematice, nu aleatoare.
-// ═══════════════════════════════════════════════════════════════════════════
-const LEARN_KEY='meteo_learn_v1';
-const LEARN_ALPHA=0.15;          // rata de învățare (mediere exponențială): erorile recente contează mai mult
-const LEARN_MIN_SAMPLES=6;       // nr. minim de comparații înainte să aplicăm corecția (statistic relevant)
-const LEARN_MAX_TCORR=2.0;       // limită siguranță: corecție temperatură max ±2°C
-const LEARN_MAX_WCORR=5.0;       // limită vânt max ±5 km/h
-const LEARN_MAX_PFACT=2.0;       // factor multiplicativ precipitații limitat la [0.5, 2.0]
-const LEARN_MIN_PFACT=0.5;       // limita inferioară factor precipitații
+// ═══════════════════════════════════════════════════════════════════════
+// AUTO-ÎNVĂȚARE ADAPTIVĂ cu praguri dinamice (bias-correction MOS extins)
+// Arhitectura: corecție dublu-strat
+//   Strat 1 (byHour)    — bias sistematic per oră a zilei (0-23)
+//   Strat 2 (byHorizon) — bias sistematic per orizont de prognoză (0-6 zile)
+// Obiective fiabilitate: azi/mâine 95-98%, 7 zile 93-95%
+// Alpha adaptiv: crește când fiabilitatea e sub țintă, scade când e peste
+// ═══════════════════════════════════════════════════════════════════════
+const LEARN_KEY       = 'meteo_learn_v2';   // v2 = structură nouă cu byHorizon
+const LEARN_MIN_SAMP  = 5;                  // mostre minime înainte de corecție
+const LEARN_REL_WIN   = 20;                 // fereastră rolling pt fiabilitate (nr. predicții)
+// Ținte fiabilitate (% ore în toleranță)
+const REL_TARGET_SHORT= 0.96;              // azi + mâine: vizăm 96% (între 95-98%)
+const REL_TARGET_LONG = 0.94;              // zile 2-6: vizăm 94% (între 93-95%)
+// Toleranțe „hit": predicție în intervalul asta = succes
+const HIT_T = 1.0;   // ±1°C
+const HIT_W = 3.0;   // ±3 km/h
+const HIT_P = 0.5;   // ±0.5 l/mp
+// Alpha adaptiv per nivel de fiabilitate (mediere exponențială)
+function learnAlpha(rel, isShort){
+  const tgt = isShort ? REL_TARGET_SHORT : REL_TARGET_LONG;
+  if(rel==null||isNaN(rel)) return 0.15;
+  if(rel < tgt-0.10) return 0.28;   // sub țintă cu >10pp → învață rapid
+  if(rel < tgt-0.03) return 0.20;   // sub țintă cu 3-10pp → ritm mediu
+  if(rel < tgt)      return 0.14;   // aproape de țintă → fin
+  if(rel > tgt+0.02) return 0.08;   // depășit → frânăm (evităm supracorecție)
+  return 0.12;
+}
+// Limite de corecție dinamice: cresc când n mare și bias sistematic
+function tCorrLimit(n, bias){
+  const base=2.0,max=4.5;
+  if(n<8) return base;
+  // cu cât mai multe mostre și bias mai mare → limită mai generoasă
+  const scale=Math.min(1,(n-8)/20);    // 0→1 pe intervalul 8-28 mostre
+  return base+(max-base)*scale*Math.min(1,Math.abs(bias)/2);
+}
+function wCorrLimit(n){ return n<8?5:Math.min(12,5+(n-8)*0.3); }
+function pFactLimit(n){ return n<8?2.0:Math.min(3.0,2.0+(n-8)*0.05); }
+
+function learnLocKey(){ return LAT.toFixed(2)+','+LON.toFixed(2)+'|'+srcSignature(); }
+function loadLearn(){
+  try{const o=JSON.parse(localStorage.getItem(LEARN_KEY)||'{}');return o&&typeof o==='object'?o:{};}
+  catch(e){return{};}
+}
+function saveLearn(o){ try{localStorage.setItem(LEARN_KEY,JSON.stringify(o));}catch(e){} }
+function _learnNode(){
+  const all=loadLearn();const k=learnLocKey();
+  if(!all[k])all[k]={byHour:{},byHorizon:{},preds:{}};
+  if(!all[k].byHorizon)all[k].byHorizon={};   // migrare de la v1
+  return{all,k,node:all[k]};
+}
+
+// Returnează nr. de zile întregi între dk (YYYY-MM-DD) și azi
+function horizonDays(dk){
+  const diff=(new Date(dk).getTime()-new Date(dkNow()).getTime())/(86400000);
+  return Math.max(0,Math.min(6,Math.round(diff)));
+}
+
+// Fiabilitatea unui nod horizon (% hits în fereastra rolling)
+function nodeReliability(hn, field){
+  if(!hn||!hn[field]||!hn[field].length)return null;
+  const wins=hn[field];
+  return wins.filter(Boolean).length/wins.length;
+}
+
+// 1) SALVEAZĂ predicțiile brute (pre-corecție) cu orizont
+function recordPredictions(rawHours){
+  const{all,node}=_learnNode();
+  const now=Date.now();
+  rawHours.forEach(h=>{
+    if(h.tMean==null)return;
+    const key=h.dk+' '+h.h;
+    if(!node.preds[key]){
+      node.preds[key]={t:h.tMean,w:h.wMean||0,p:h.pMean||0,ts:now,
+                       hor:horizonDays(h.dk)};
+    }
+  });
+  const cutoff=now-3*86400000;
+  Object.keys(node.preds).forEach(k=>{if(node.preds[k].ts<cutoff)delete node.preds[k];});
+  saveLearn(all);
+}
+
+// 2) ÎNVAȚĂ din ERA5: actualizează AMBELE straturi (byHour + byHorizon) + tracking fiabilitate
+async function learnFromObserved(){
+  const{node}=_learnNode();
+  if(!node||!node.preds||!Object.keys(node.preds).length)return;
+  const dk0=dkNow(),h0=hNow();
+  const pastKeys=Object.keys(node.preds).filter(k=>{
+    const[dk,h]=k.split(' ');const hh=parseInt(h,10);
+    return dk<dk0||(dk===dk0&&hh<h0);
+  });
+  if(!pastKeys.length)return;
+
+  let obs={};
+  try{
+    const today=new Date();
+    const start=new Date(today.getTime()-3*86400000).toISOString().split('T')[0];
+    const end=new Date(today.getTime()-1*86400000).toISOString().split('T')[0];
+    const p=new URLSearchParams({latitude:LAT,longitude:LON,
+      hourly:'temperature_2m,precipitation,wind_speed_10m',
+      timezone:TZ,start_date:start,end_date:end,wind_speed_unit:'kmh'});
+    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
+    const r=await fetch('https://archive-api.open-meteo.com/v1/archive?'+p,{signal:ctrl.signal});
+    clearTimeout(tid);
+    if(!r.ok)return;
+    const d=await r.json();const H=d.hourly;
+    if(!H||!H.time)return;
+    H.time.forEach((ts,i)=>{
+      const dk=ts.split('T')[0],h=parseInt(ts.split('T')[1],10);
+      obs[dk+' '+h]={t:H.temperature_2m?.[i],w:H.wind_speed_10m?.[i],p:H.precipitation?.[i]};
+    });
+  }catch(e){return;}
+
+  const{all,node:node2}=_learnNode();
+  let updated=false;
+  pastKeys.forEach(key=>{
+    const o=obs[key];const pred=node2.preds[key];
+    if(!o||!pred||o.t==null)return;
+    const hr=parseInt(key.split(' ')[1],10);
+    const hor=pred.hor!=null?pred.hor:0;
+    const isShort=(hor<=1);
+
+    // ── Strat 1: byHour ──
+    const hb=node2.byHour[hr]||{tBias:0,wBias:0,pFactor:1,n:0};
+    const alphaH=learnAlpha(nodeReliability(node2.byHorizon[hor],'tH'), isShort);
+    hb.tBias=hb.tBias*(1-alphaH)+(o.t-pred.t)*alphaH;
+    hb.wBias=hb.wBias*(1-alphaH)+((o.w||0)-pred.w)*alphaH;
+    if(pred.p>0.1||(o.p||0)>0.1){
+      const ratio=((o.p||0)+0.1)/(pred.p+0.1);
+      hb.pFactor=hb.pFactor*(1-alphaH)+Math.max(0.2,Math.min(5,ratio))*alphaH;
+    }
+    hb.n=(hb.n||0)+1;
+    node2.byHour[hr]=hb;
+
+    // ── Strat 2: byHorizon ──
+    const hd=node2.byHorizon[hor]||{tBias:0,wBias:0,pFactor:1,n:0,tH:[],wH:[],pH:[]};
+    const alphaD=learnAlpha(nodeReliability(hd,'tH'), isShort);
+    const tErr=o.t-pred.t, wErr=(o.w||0)-pred.w;
+    hd.tBias=hd.tBias*(1-alphaD)+tErr*alphaD;
+    hd.wBias=hd.wBias*(1-alphaD)+wErr*alphaD;
+    if(pred.p>0.1||(o.p||0)>0.1){
+      const ratio=((o.p||0)+0.1)/(pred.p+0.1);
+      hd.pFactor=hd.pFactor*(1-alphaD)+Math.max(0.2,Math.min(5,ratio))*alphaD;
+    }
+    hd.n=(hd.n||0)+1;
+    // tracking fiabilitate rolling (fereastră LEARN_REL_WIN)
+    // tH = temperatura a fost în ±HIT_T? wH = vântul în ±HIT_W? pH = ploaia corect?
+    const corrT = Math.max(-tCorrLimit(hd.n,hd.tBias), Math.min(tCorrLimit(hd.n,hd.tBias), (hb.tBias||0)+(hd.tBias||0)));
+    const predTCorr = pred.t + corrT;
+    hd.tH=[...((hd.tH||[]).slice(-(LEARN_REL_WIN-1))), Math.abs(o.t-predTCorr)<=HIT_T];
+    hd.wH=[...((hd.wH||[]).slice(-(LEARN_REL_WIN-1))), Math.abs(wErr)<=HIT_W];
+    const pHit=Math.abs((o.p||0)-pred.p)<=HIT_P;
+    hd.pH=[...((hd.pH||[]).slice(-(LEARN_REL_WIN-1))), pHit];
+    node2.byHorizon[hor]=hd;
+
+    delete node2.preds[key];
+    updated=true;
+  });
+
+  if(updated){
+    saveLearn(all);
+    _renderLearnStatus();
+  }
+}
+
+// 3) APLICĂ corecția ambelor straturi la orele viitoare
+function applyLearnedCorrection(hours){
+  const{node}=_learnNode();
+  if(!node)return hours;
+  hours.forEach(h=>{
+    const hb=node.byHour[h.h];
+    const hd=node.byHorizon!=null?node.byHorizon[horizonDays(h.dk)]:null;
+    const nH=hb?.n||0, nD=hd?.n||0;
+    const hasH=nH>=LEARN_MIN_SAMP, hasD=nD>=LEARN_MIN_SAMP;
+    if(!hasH&&!hasD)return;
+
+    if(h.tMean!=null){
+      const bH=hasH?hb.tBias:0, bD=hasD?hd.tBias:0;
+      const combined=bH+bD;
+      const lim=tCorrLimit(Math.max(nH,nD), combined);
+      const corr=Math.max(-lim,Math.min(lim,combined));
+      h.tMean=Math.round((h.tMean+corr)*10)/10;
+      h._tCorr=Math.round(corr*10)/10;
+    }
+    if(h.wMean!=null){
+      const bH=hasH?hb.wBias:0, bD=hasD?hd.wBias:0;
+      const lim=wCorrLimit(Math.max(nH,nD));
+      const corr=Math.max(-lim,Math.min(lim,bH+bD));
+      h.wMean=Math.max(0,Math.round(h.wMean+corr));
+      h._wCorr=Math.round(corr);
+    }
+    if(h.pMean!=null){
+      const f1=hasH?hb.pFactor:1, f2=hasD?hd.pFactor:1;
+      const fComb=hasH&&hasD?Math.sqrt(f1*f2):(hasH?f1:f2);  // media geometrică
+      const lim=pFactLimit(Math.max(nH,nD));
+      const f=Math.max(1/lim,Math.min(lim,fComb));
+      h.pMean=Math.round(h.pMean*f*10)/10;
+      h._pFact=Math.round(f*100)/100;
+    }
+  });
+  return hours;
+}
+
+// Statistici fiabilitate pt afișare: azi/mâine + 7 zile
+function learnStats(){
+  const{node}=_learnNode();
+  if(!node)return{active:0,avgT:null,total:0,rel:{}};
+  const hrs=Object.values(node.byHour||{});
+  const active=hrs.filter(h=>(h.n||0)>=LEARN_MIN_SAMP).length;
+  const avgT=active?Math.round(hrs.filter(h=>h.n>=LEARN_MIN_SAMP)
+    .reduce((s,h)=>s+Math.abs(h.tBias),0)/active*10)/10:null;
+  const rel={};
+  for(let d=0;d<=6;d++){
+    const hd=(node.byHorizon||{})[d];
+    if(!hd||!hd.n)continue;
+    rel[d]={t:nodeReliability(hd,'tH'),w:nodeReliability(hd,'wH'),p:nodeReliability(hd,'pH'),n:hd.n};
+  }
+  return{active,avgT,total:hrs.length,rel};
+}
+
+function _renderLearnStatus(){
+  const ls=learnStats();const lse=el('learn-status');if(!lse)return;
+  if(!ls.active){lse.textContent='';return;}
+  // Fiabilitate azi+mâine vs 7 zile
+  const r01=[ls.rel[0],ls.rel[1]].filter(Boolean);
+  const r26=[ls.rel[2],ls.rel[3],ls.rel[4],ls.rel[5],ls.rel[6]].filter(Boolean);
+  const avgRel=arr=>arr.length?Math.round(arr.reduce((s,r)=>s+(r.t||0),0)/arr.length*100):null;
+  const rS=avgRel(r01),rL=avgRel(r26);
+  let txt=t('learn_active')+ls.active+t('learn_hours');
+  if(rS!=null)txt+=` · Azi/mâine: ${rS}%`;
+  if(rL!=null)txt+=` · 7 zile: ${rL}%`;
+  if(ls.avgT!=null)txt+=` · ${t('learn_avg')}${ls.avgT}°`;
+  lse.textContent=txt;
+}
+
+// Construiește HTML-ul cu probabilitățile de fiabilitate ale prognozei (din autoinvățare).
+// Afișat în sumar: 🌡 Prob. XX% · 🌧 Prob. XX% · 💨 Prob. XX% pt azi/mâine și 7 zile.
+// Culoarea indică nivelul: verde ≥96%, albastru ≥93%, galben ≥88%, roșu <88%.
+function buildRelProbHtml(){
+  const ls=(typeof learnStats==='function')?learnStats():null;
+  if(!ls||!ls.rel)return'';
+  const MN=typeof LEARN_MIN_SAMP==='number'?LEARN_MIN_SAMP:5;
+  const pct=(r,f)=>(r&&r[f]!=null&&(r.n||0)>=MN)?Math.round(r[f]*100):null;
+  const avg=(a,b)=>(a==null&&b==null)?null:(a==null?b:(b==null?a:Math.round((a+b)/2)));
+  const col=v=>v==null?'#5a7390':v>=96?'#6ee7b7':v>=93?'#a5b4fc':v>=88?'#fbbf24':'#fb7185';
+  const fmt=v=>v!=null?`${v}%`:'—';
+  const r0=ls.rel[0],r1=ls.rel[1];
+  const r26=[2,3,4,5,6].map(d=>ls.rel[d]).filter(Boolean);
+  // azi/mâine
+  const tS=avg(pct(r0,'t'),pct(r1,'t'));
+  const pS=avg(pct(r0,'p'),pct(r1,'p'));
+  const wS=avg(pct(r0,'w'),pct(r1,'w'));
+  // 7 zile
+  const mn=(arr,f)=>arr.length?Math.round(arr.reduce((s,r)=>s+(r[f]||0),0)/arr.length*100):null;
+  const tL=mn(r26,'t'),pL=mn(r26,'p'),wL=mn(r26,'w');
+  if(tS==null&&tL==null)return'';
+  const mkRow=(lbl,t_,p_,w_)=>t_!=null||p_!=null||w_!=null?
+    `<div class="rp-row"><span class="rp-lbl">${lbl}</span>`+
+    `<span style="color:${col(t_)}">🌡 Prob. ${fmt(t_)}</span>`+
+    `<span style="color:${col(p_)}">🌧 Prob. ${fmt(p_)}</span>`+
+    `<span style="color:${col(w_)}">💨 Prob. ${fmt(w_)}</span>`+
+    `</div>`:'';
+  const rowS=mkRow('Azi/mâine:',tS,pS,wS);
+  const rowL=mkRow('7 zile:',tL,pL,wL);
+  return(rowS||rowL)?`<div class="nc-rel-prob">${rowS}${rowL}</div>`:'';
+}
 
 // cheie de locație (rotunjită) — învățarea e specifică zonei
 // Cheia de învățare = locație + configurația de surse, astfel încât Best, Toate și fiecare
@@ -698,140 +955,6 @@ function srcSignature(){
   let hash=0;const s=ids.join(',');
   for(let i=0;i<s.length;i++){hash=((hash<<5)-hash+s.charCodeAt(i))|0;}
   return 'sel'+Math.abs(hash).toString(36);
-}
-function learnLocKey(){ return LAT.toFixed(2)+','+LON.toFixed(2)+'|'+srcSignature(); }
-
-// structura: { "lat,lon": { byHour:{ 0..23: {tBias,wBias,pFactor,n} }, preds:{ "dk h": {t,w,p,ts} } } }
-function loadLearn(){
-  try{const o=JSON.parse(localStorage.getItem(LEARN_KEY)||'{}');return o&&typeof o==='object'?o:{};}
-  catch(e){return{};}
-}
-function saveLearn(o){ try{localStorage.setItem(LEARN_KEY,JSON.stringify(o));}catch(e){} }
-
-function _learnNode(){
-  const all=loadLearn();const k=learnLocKey();
-  if(!all[k])all[k]={byHour:{},preds:{}};
-  return{all,k,node:all[k]};
-}
-
-// 1) SALVEAZĂ predicțiile brute (înainte de corecție) pt orele viitoare, ca să le verificăm ulterior
-function recordPredictions(rawHours){
-  const{all,node}=_learnNode();
-  const now=Date.now();
-  rawHours.forEach(h=>{
-    if(h.tMean==null)return;
-    const key=h.dk+' '+h.h;
-    // salvăm doar dacă nu există deja o predicție pt acea oră (prima predicție, cea mai „pură")
-    if(!node.preds[key]){
-      node.preds[key]={t:h.tMean,w:h.wMean||0,p:h.pMean||0,ts:now};
-    }
-  });
-  // curățenie: șterge predicții mai vechi de 3 zile (deja verificate sau irelevante)
-  const cutoff=now-3*86400000;
-  Object.keys(node.preds).forEach(k=>{if(node.preds[k].ts<cutoff)delete node.preds[k];});
-  saveLearn(all);
-}
-
-// 2) ÎNVAȚĂ din observații REALE: aduce datele observate (ERA5 reanaliză) printr-o cerere
-//    SEPARATĂ și izolată — dacă eșuează, NU afectează prognoza principală. Compară predicțiile
-//    salvate cu valorile real observate și actualizează biasul.
-async function learnFromObserved(){
-  const{node}=_learnNode();
-  if(!node||!node.preds||!Object.keys(node.preds).length)return;  // nimic de verificat
-  // adună orele trecute pe care le-am prezis și pt care încă n-am observație
-  const dk0=dkNow(),h0=hNow();
-  const pastKeys=Object.keys(node.preds).filter(k=>{
-    const[dk,h]=k.split(' ');const hh=parseInt(h,10);
-    return dk<dk0||(dk===dk0&&hh<h0);
-  });
-  if(!pastKeys.length)return;
-
-  // cerere ARHIVĂ (observat real ERA5) pt ultimele ~3 zile — IZOLATĂ în try/catch propriu
-  let obs={};
-  try{
-    const today=new Date();
-    const start=new Date(today.getTime()-3*86400000).toISOString().split('T')[0];
-    const end=new Date(today.getTime()-1*86400000).toISOString().split('T')[0];
-    const p=new URLSearchParams({latitude:LAT,longitude:LON,
-      hourly:'temperature_2m,precipitation,wind_speed_10m',
-      timezone:TZ,start_date:start,end_date:end,wind_speed_unit:'kmh'});
-    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),10000);
-    const r=await fetch('https://archive-api.open-meteo.com/v1/archive?'+p,{signal:ctrl.signal});
-    clearTimeout(tid);
-    if(!r.ok)return;                       // arhiva indisponibilă ⇒ ieșim liniștit, fără efect
-    const d=await r.json();const H=d.hourly;
-    if(!H||!H.time)return;
-    H.time.forEach((ts,i)=>{
-      const dk=ts.split('T')[0],h=parseInt(ts.split('T')[1],10);
-      obs[dk+' '+h]={t:H.temperature_2m?.[i],w:H.wind_speed_10m?.[i],p:H.precipitation?.[i]};
-    });
-  }catch(e){ return; }                     // orice eroare ⇒ nu învățăm acum, dar prognoza e neatinsă
-
-  const{all,node:node2}=_learnNode();
-  let updated=false;
-  pastKeys.forEach(key=>{
-    const o=obs[key];
-    const pred=node2.preds[key];
-    if(!o||!pred||o.t==null)return;        // nu avem observație reală pt această oră
-    const hr=parseInt(key.split(' ')[1],10);
-    const hb=node2.byHour[hr]||{tBias:0,wBias:0,pFactor:1,n:0};
-    const tErr=o.t-pred.t;
-    const wErr=(o.w||0)-pred.w;
-    hb.tBias=hb.tBias*(1-LEARN_ALPHA)+tErr*LEARN_ALPHA;
-    hb.wBias=hb.wBias*(1-LEARN_ALPHA)+wErr*LEARN_ALPHA;
-    if(pred.p>0.2||(o.p||0)>0.2){
-      const ratio=((o.p||0)+0.1)/(pred.p+0.1);
-      const clamped=Math.max(0.2,Math.min(5,ratio));
-      hb.pFactor=hb.pFactor*(1-LEARN_ALPHA)+clamped*LEARN_ALPHA;
-    }
-    hb.n=(hb.n||0)+1;
-    node2.byHour[hr]=hb;
-    delete node2.preds[key];               // verificată ⇒ nu o reverificăm
-    updated=true;
-  });
-  if(updated){saveLearn(all);
-    // reîmprospătează statusul afișat după ce am învățat
-    const ls=learnStats();const lse=el('learn-status');
-    if(lse&&ls.active>0)lse.textContent=t('learn_active')+ls.active+t('learn_hours')+(ls.avgT!=null?t('learn_avg')+ls.avgT+'°':'');
-  }
-}
-
-// 3) APLICĂ corecția învățată la orele viitoare (cu limite de siguranță și prag minim de mostre)
-function applyLearnedCorrection(hours){
-  const{node}=_learnNode();
-  if(!node||!node.byHour)return hours;
-  hours.forEach(h=>{
-    const hb=node.byHour[h.h];
-    if(!hb||(hb.n||0)<LEARN_MIN_SAMPLES)return;   // prea puține mostre ⇒ nu corectăm încă
-    if(h.tMean!=null){
-      const corr=Math.max(-LEARN_MAX_TCORR,Math.min(LEARN_MAX_TCORR,hb.tBias));
-      h.tMean=Math.round((h.tMean+corr)*10)/10;
-      h._tCorr=Math.round(corr*10)/10;             // pt afișare „corectat cu +X°"
-    }
-    if(h.wMean!=null){
-      const corr=Math.max(-LEARN_MAX_WCORR,Math.min(LEARN_MAX_WCORR,hb.wBias));
-      h.wMean=Math.max(0,Math.round(h.wMean+corr));
-      h._wCorr=Math.round(corr);
-    }
-    if(h.pMean!=null&&hb.pFactor){
-      const f=Math.max(LEARN_MIN_PFACT,Math.min(LEARN_MAX_PFACT,hb.pFactor));
-      h.pMean=Math.round(h.pMean*f*10)/10;
-      h._pFact=Math.round(f*100)/100;
-    }
-  });
-  return hours;
-}
-
-// Statistici învățare pt afișare în UI (câte ore au corecție activă, eroare medie absolută)
-function learnStats(){
-  const{node}=_learnNode();
-  if(!node||!node.byHour)return{active:0,avgT:null,total:0};
-  const hrs=Object.values(node.byHour);
-  const active=hrs.filter(h=>(h.n||0)>=LEARN_MIN_SAMPLES).length;
-  const withData=hrs.filter(h=>(h.n||0)>0);
-  const avgT=withData.length?withData.reduce((s,h)=>s+Math.abs(h.tBias||0),0)/withData.length:null;
-  const total=hrs.reduce((s,h)=>s+(h.n||0),0);
-  return{active,avgT:avgT!=null?Math.round(avgT*10)/10:null,total};
 }
 
 function allHours(map){
@@ -1651,7 +1774,8 @@ function renderNowcast(hours,cur){
     `<span>${tCur!=null?tCur+'°C':'—'}</span>`+
     `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}</span></div>`+
     nreHtml+
-    `<div class="nc-sub">${L.join('')}</div>`;
+    `<div class="nc-sub">${L.join('')}</div>`+
+    buildRelProbHtml();
 }
 
 
@@ -2623,7 +2747,7 @@ function applyResults(results){
   const ls=learnStats();const lse=el('learn-status');
   if(lse){
     if(ls.total===0) lse.textContent=t('learn_collecting');
-    else if(ls.active===0) lse.textContent=t('learn_learning')+': '+ls.total+t('learn_comparisons')+LEARN_MIN_SAMPLES+t('learn_per_hour');
+    else if(ls.active===0) lse.textContent=t('learn_learning')+': '+ls.total+t('learn_comparisons')+LEARN_MIN_SAMP+t('learn_per_hour');
     else lse.textContent=t('learn_active')+ls.active+t('learn_hours')+(ls.avgT!=null?t('learn_avg')+ls.avgT+'°':'');
   }
   el('flash').textContent=t('colors_refreshed');
