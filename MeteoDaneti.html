@@ -332,6 +332,8 @@ const GEONAMES_USER='';
 const HOME={lat:43.983,lon:24.050,tz:'Europe/Bucharest',name:'Daneti, Dolj',elev:110};
 let LAT=HOME.lat, LON=HOME.lon, TZ=HOME.tz, LOC_NAME=HOME.name;
 let _locKind='daneti';    // 'daneti'|'craiova'|'gps'|'search' — pentru evidențierea butoanelor + persistență
+let _locAdmin1='Dolj';    // admin1 din geocoding: județ (RO) sau England/Scotland etc. (UK)
+let _locAdmin2='';        // admin2 din geocoding: district/localitate mai granulară
 let ELEV_OVERRIDE=null;   // altitudine fixată manual (m). null = auto (DEM 90 m Open-Meteo)
 let _resolvedElev=null;   // altitudinea efectiv folosită de API (citită din răspuns)
 
@@ -1005,7 +1007,7 @@ async function fetchOfficialWarnings(){
         const data=await r.json();
         if(!data||!data.avertizare)continue;  // răspuns invalid → încearcă proxy următor
         const all=parseANMJsonWarnings(data);
-        const local=all.filter(warningMatchesDJ);
+        const local=all.filter(warningMatchesROCounty);
         if(local.length){
           // ANM are avertizări active pentru Dolj → sursă oficială, terminăm
           local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
@@ -1027,7 +1029,7 @@ async function fetchOfficialWarnings(){
   // Feed direct Met Office: https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/yh
   // Nu necesită cheie API. Sursă mai fiabilă decât Meteoalarm pentru UK.
   if(country==='united-kingdom'){
-    const MO_YH='https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/yh';
+    const MO_YH='https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/UK';
     const moWraps=[
       u=>u,
       u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
@@ -1044,8 +1046,8 @@ async function fetchOfficialWarnings(){
         const txt=await r.text();
         if(!txt||txt.length<80)continue;
         const all=parseMetOfficeRSS(txt);
-        // Feed yh e specific Yorkshire → orice avertizare e relevantă pentru York
-        const local=all.filter(w=>warningMatchesYork(w));
+        // Filtrare dinamică: regiune UK din locația curentă
+        const local=all.filter(w=>warningMatchesUKLocation(w));
         if(local.length){
           local.sort((a,b)=>parseInt(b.level||0)-parseInt(a.level||0));
           _owCache=local.slice(0,3);
@@ -1259,13 +1261,36 @@ function pointInPoly(lat,lon,poly){
 function regionGeocodesFor(){
   if(_locKind==='york') return ['UK513','UK514','UK515','UK516','UK517','UK518']; // Yorkshire & Humber
   if(_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti') return ['RO008']; // jud. Dolj
-  return [];  // căutări libere: nu avem cod regional → ne bazăm pe poligon/proximitate
+  // Dinamic pentru search/GPS în România: cod EMMA = 'RO' + cod județ
+  const code=roCountyCode();
+  if(code) return ['RO'+code.padStart(3,'0')];  // ex: DJ → RO0DJ sau similar
+  return [];
 }
-// Cuvinte-cheie de regiune pt potrivirea pe areaDesc (doar pt locațiile fixe cunoscute)
+// Cuvinte-cheie de regiune pt potrivirea pe areaDesc
 function regionKeywordsFor(){
   if(_locKind==='york') return ['york','yorkshire','humber','north east','pennines'];
   if(_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti') return ['dolj','oltenia','craiova'];
-  return [];  // căutări libere: nu ghicim cuvinte-cheie
+  // Dinamic pentru search/GPS
+  const country=countryFromTZ(TZ);
+  if(country==='united-kingdom') return ukRegionKeywords();
+  if(country==='romania'){
+    const code=roCountyCode();
+    const NAMES={AB:'alba',AR:'arad',AG:'argeș',BC:'bacău',BH:'bihor',BN:'bistrița',
+      BT:'botoșani',BV:'brașov',BR:'brăila',BZ:'buzău',CS:'caraș-severin',CL:'călărași',
+      CJ:'cluj',CT:'constanța',CV:'covasna',DB:'dâmbovița',DJ:'dolj',GL:'galați',
+      GR:'giurgiu',GJ:'gorj',HR:'harghita',HD:'hunedoara',IL:'ialomița',IS:'iași',
+      IF:'ilfov',MM:'maramureș',MH:'mehedinți',MS:'mureș',NT:'neamț',OT:'olt',
+      PH:'prahova',SM:'satu mare',SJ:'sălaj',SB:'sibiu',SV:'suceava',TR:'teleorman',
+      TM:'timiș',TL:'tulcea',VS:'vaslui',VL:'vâlcea',VN:'vrancea',B:'bucurești'};
+    const REG={DJ:'oltenia',MH:'oltenia',GJ:'oltenia',OT:'oltenia',VL:'oltenia',
+      CJ:'transilvania',BV:'transilvania',SB:'transilvania',MS:'transilvania',HR:'transilvania',
+      CV:'transilvania',AB:'transilvania',HD:'transilvaniai',AR:'banat',TM:'banat',CS:'banat',
+      IS:'moldova',SV:'moldova',NT:'moldova',BC:'moldova',VS:'moldova',VN:'moldova',GL:'muntenia',
+      CT:'dobrogea',TL:'dobrogea'};
+    const nm=NAMES[code]||'';const rg=REG[code]||'';
+    return [nm,rg].filter(Boolean);
+  }
+  return [];
 }
 
 // Decide dacă o avertizare e relevantă pentru locația curentă (LAT/LON/regiune).
@@ -1357,6 +1382,77 @@ function parseANMJsonWarnings(data){
     });
   }
   return out;
+}
+
+// ── Detectare dinamică județ România din admin1 geocoding ──
+function roCountyCode(){
+  if(_locKind==='daneti'||_locKind==='craiova'||_locKind==='raieti')return 'DJ';
+  const raw=(_locAdmin1||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s*county\b/,'').replace(/\s*judet\b/,'').trim();
+  const M={
+    'alba':'AB','arad':'AR','arges':'AG','bacau':'BC','bihor':'BH',
+    'bistrita-nasaud':'BN','bistrita nasaud':'BN','botosani':'BT',
+    'brasov':'BV','braila':'BR','buzau':'BZ','caras-severin':'CS','caras severin':'CS',
+    'calarasi':'CL','cluj':'CJ','constanta':'CT','covasna':'CV','dambovita':'DB',
+    'dolj':'DJ','galati':'GL','giurgiu':'GR','gorj':'GJ','harghita':'HR',
+    'hunedoara':'HD','ialomita':'IL','iasi':'IS','ilfov':'IF','maramures':'MM',
+    'mehedinti':'MH','mures':'MS','neamt':'NT','olt':'OT','prahova':'PH',
+    'satu mare':'SM','salaj':'SJ','sibiu':'SB','suceava':'SV','teleorman':'TR',
+    'timis':'TM','tulcea':'TL','vaslui':'VS','valcea':'VL','vrancea':'VN',
+    'bucuresti':'B','bucharest':'B','municipiul bucuresti':'B',
+  };
+  if(M[raw])return M[raw];
+  for(const k of Object.keys(M))if(raw.includes(k)||k.includes(raw))return M[k];
+  return '';
+}
+
+// Avertizări ANM pentru orice județ din România (versiunea dinamică a warningMatchesDJ)
+function warningMatchesROCounty(w){
+  const code=roCountyCode();
+  if(code&&w._judete&&w._judete.includes(code))return true;
+  const a=(w.area||'').toLowerCase();
+  const REV={
+    AB:'alba',AR:'arad',AG:'arges',BC:'bacau',BH:'bihor',BN:'bistrita',BT:'botosani',
+    BV:'brasov',BR:'braila',BZ:'buzau',CS:'caras',CL:'calarasi',CJ:'cluj',
+    CT:'constanta',CV:'covasna',DB:'dambovita',DJ:'dolj',GL:'galati',GR:'giurgiu',
+    GJ:'gorj',HR:'harghita',HD:'hunedoara',IL:'ialomita',IS:'iasi',IF:'ilfov',
+    MM:'maramures',MH:'mehedinti',MS:'mures',NT:'neamt',OT:'olt',PH:'prahova',
+    SM:'satu mare',SJ:'salaj',SB:'sibiu',SV:'suceava',TR:'teleorman',TM:'timis',
+    TL:'tulcea',VS:'vaslui',VL:'valcea',VN:'vrancea',B:'bucuresti|bucharest',
+  };
+  if(code&&REV[code]&&new RegExp(REV[code],'i').test(a))return true;
+  if(/toat[aă].*[tț]ar[aă]|ntreaga|na[tț]ional|toate regiunile/.test(a))return true;
+  return false;
+}
+
+// Detectare regiune UK din admin1/admin2 geocoding
+function ukRegionKeywords(){
+  if(_locKind==='york')return['yorkshire','humber'];
+  const loc=((_locAdmin2||'')+' '+(_locAdmin1||'')).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(/yorkshire|humber/.test(loc))return['yorkshire','humber'];
+  if(/manchester|lancashire|merseyside|cheshire|cumbria/.test(loc))return['north west'];
+  if(/tyne|wear|durham|northumberland|teesside/.test(loc))return['north east'];
+  if(/nottingham|leicester|derby|northampton|lincoln/.test(loc))return['east midland'];
+  if(/birmingham|west midland|warwick|stafford|shropshire/.test(loc))return['west midland'];
+  if(/norfolk|suffolk|cambridge|essex|hertford|bedford/.test(loc))return['east of england','anglia'];
+  if(/kent|surrey|sussex|hampshire|berkshire|oxford|buckingham/.test(loc))return['south east'];
+  if(/cornwall|devon|somerset|dorset|wiltshire|gloucester|bristol/.test(loc))return['south west'];
+  if(/\blondon\b/.test(loc))return['london'];
+  if(/wales|cardiff|swansea|gwynedd/.test(loc))return['wales'];
+  if(/scotland|edinburgh|glasgow|highland|aberdeen/.test(loc))return['scotland'];
+  if(/northern ireland|belfast/.test(loc))return['northern ireland'];
+  return[''];
+}
+
+// Filtrează avertizările Met Office pentru locația UK curentă (dinamic)
+function warningMatchesUKLocation(w){
+  const area=(w.area||'').toLowerCase();
+  if(/all.*england|england.*all|nationwide|all.*uk|great.*britain/i.test(area))return true;
+  const kws=ukRegionKeywords();
+  if(kws[0]===''||kws.some(k=>k&&area.includes(k)))return true;
+  return false;
 }
 
 // Filtrează avertizările ANM relevante pentru județul Dolj (Daneti, Craiova, Raieti).
@@ -2755,7 +2851,7 @@ async function geoOpenMeteo(q){
   const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);
   const j=await r.json();
   return (j.results||[]).map(g=>({
-    name:g.name, admin:g.admin1||'', country:g.country||g.country_code||'',
+    name:g.name, admin:g.admin1||'', admin2:g.admin2||'', country:g.country||g.country_code||'',
     lat:g.latitude, lon:g.longitude, tz:g.timezone||TZ, pop:g.population||0
   }));
 }
@@ -2791,7 +2887,7 @@ function clearCards(){el('body-azi').innerHTML=t('loading');el('body-maine').inn
 // Persistența setărilor (locație + praguri) în localStorage; degradează grațios dacă e blocat
 function saveLastLoc(){
   try{localStorage.setItem(LS_KEY,JSON.stringify({
-    loc:{lat:LAT,lon:LON,tz:TZ,name:LOC_NAME,elev:ELEV_OVERRIDE,kind:_locKind},
+    loc:{lat:LAT,lon:LON,tz:TZ,name:LOC_NAME,elev:ELEV_OVERRIDE,kind:_locKind,admin1:_locAdmin1,admin2:_locAdmin2},
     thr:{RAIN_MIN,WIND_MIN,FROST_T,HEAT_T,P_LOW,P_HIGH}
   }));}catch(e){}
 }
@@ -2815,6 +2911,7 @@ function restoreLastLoc(){
     if(o.loc&&typeof o.loc.lat==='number'&&typeof o.loc.lon==='number'){
       LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;LOC_NAME=o.loc.name||LOC_NAME;
       ELEV_OVERRIDE=(o.loc.elev!=null?o.loc.elev:null);_locKind=o.loc.kind||'search';
+      _locAdmin1=o.loc.admin1||'';_locAdmin2=o.loc.admin2||'';
       locOk=true;
     }
     if(migrated)saveLastLoc();   // persistă DUPĂ ce locația+pragurile sunt restaurate corect, ca migrarea să fie o singură dată
@@ -2831,6 +2928,7 @@ function syncThrInputs(){
 function pickLocation(g){
   LAT=g.lat;LON=g.lon;TZ=g.tz||TZ;
   LOC_NAME=[g.name,g.admin,g.country].filter(Boolean).join(', ');_locKind='search';
+  _locAdmin1=g.admin||'';_locAdmin2=g.admin2||'';
   ELEV_OVERRIDE=null;syncElevInput();
   updateLocnameDisplay();
   el('loc-res').style.display='none';el('loc-q').value='';
@@ -2843,6 +2941,13 @@ function pickLocation(g){
 const CRAIOVA={lat:44.320,lon:23.800,tz:'Europe/Bucharest',name:'Craiova, Dolj',elev:100};
 const YORK   ={lat:53.959,lon:-1.082,tz:'Europe/London',   name:'York, UK'};
 const RAIETI ={lat:43.900,lon:23.954,tz:'Europe/Bucharest',name:'Raieti, Sadova, Dolj'};
+// Metadata admin pentru locații fixe (admin1 = județ/regiune, admin2 = localitate/district)
+const LOC_META={
+  daneti: {admin1:'Dolj',admin2:'Daneti'},
+  craiova:{admin1:'Dolj',admin2:'Craiova'},
+  raieti: {admin1:'Dolj',admin2:'Sadova'},
+  york:   {admin1:'England',admin2:'York'},
+};
 function updateFixedBtns(){
   el('btn-daneti') .classList.toggle('active',_locKind==='daneti');
   el('btn-craiova').classList.toggle('active',_locKind==='craiova');
@@ -2854,6 +2959,8 @@ function goFixed(which){
   const locs={daneti:HOME,craiova:CRAIOVA,york:YORK,raieti:RAIETI};
   const loc=locs[which]||HOME;
   LAT=loc.lat;LON=loc.lon;TZ=loc.tz;LOC_NAME=loc.name;_locKind=which;
+  const m=LOC_META[which]||{};
+  _locAdmin1=m.admin1||'';_locAdmin2=m.admin2||'';
   ELEV_OVERRIDE=null;syncElevInput();
   updateLocnameDisplay();
   el('loc-res').style.display='none';el('loc-q').value='';
