@@ -352,9 +352,10 @@ function computeHour(e){
   const Wconv=srcs.map((s,i)=>Wbase[i]*tempFactor(s.type,e.h)); // + modulare temporală (DOAR convecție: ploaie/vânt)
 
   // Temperatura/punct de rouă: ponderi de BAZĂ, fără modulare convectivă (Pilon D — corecție)
-  const tM =wMeanPairs(srcs.map((s,i)=>[s.t,  Wbase[i]]));
-  const atM=wMeanPairs(srcs.map((s,i)=>[s.at, Wbase[i]]));
-  const dpM=wMeanPairs(srcs.map((s,i)=>[s.dp, Wbase[i]]));
+  // Temperatura: NUMAI din modele deterministe — ensemble mean e 1-3°C mai rece în zilele caniculare
+  const tM =wMeanPairs(srcs.map((s,i)=>[s.ensemble?null:s.t,  Wbase[i]]));
+  const atM=wMeanPairs(srcs.map((s,i)=>[s.ensemble?null:s.at, Wbase[i]]));
+  const dpM=wMeanPairs(srcs.map((s,i)=>[s.ensemble?null:s.dp, Wbase[i]]));
   // Vânt: ponderi convective
   const wM =wMeanPairs(srcs.map((s,i)=>[s.w,  Wconv[i]]));
   const pM =wMeanPairs(srcs.map((s,i)=>[s.p,  Wconv[i]]));
