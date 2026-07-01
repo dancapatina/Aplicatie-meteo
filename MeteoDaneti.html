@@ -464,29 +464,29 @@ function tempCross(dayHrs,warm){
 // pe mai multe ore CONSECUTIVE la rata pragului.
 const RAIN_EVENT_MM=10;
 function nextRainEvent(hours){
-  // Pragul de intensitate orară care FORMEAZĂ episodul e FIX și independent de RAIN_MIN
-  // (pragul de notificare ales de utilizator). Folosim un epsilon mic (orice ploaie
-  // măsurabilă continuă episodul), astfel încât avertizarea de eveniment cumulat
-  // >10 l/mp să apară la ORICE setare a pragului — condiția de bază fiind DOAR totalul.
+  // Verificăm fiecare zi SEPARAT — episod care începe azi și continuă mâine = alerte distincte.
+  // Dacă azi (de la ora curentă) < 10 l/mp → nicio alertă pentru azi, chiar dacă mâine va fi >10.
   const rateThr=0.05;
   const dk0=dkNow(),h0=hNow();
   const fut=hours.filter(h=>h.dk>dk0||(h.dk===dk0&&h.h>=h0));
-  let i=0;
-  while(i<fut.length){
-    if((fut[i].pMean||0)>=rateThr){
-      let j=i,total=0;
-      // extinde episodul DOAR cât timp fiecare oră următoare e încă peste prag (strict consecutiv);
-      // prima oră care nu îndeplinește pragul ÎNCHEIE definitiv episodul curent (fără bridging)
-      while(j<fut.length&&(fut[j].pMean||0)>=rateThr){total+=fut[j].pMean||0;j++;}
-      if(total>RAIN_EVENT_MM){
-        const sH=fut[i].h,eH=fut[j-1].h+1;
-        const endTxt=eH>=24?'00:00 ('+t('next_day')+')':fH(eH);
-        return{dk:fut[i].dk,total:Math.round(total*10)/10,from:fH(sH),to:endTxt};
-      }
-      i=j;                                  // episodul curent nu a calificat ⇒ sare la oră de DUPĂ pauză, caută următorul episod
-    } else i++;
+  const days=[...new Set(fut.map(h=>h.dk))].sort();
+  for(const dk of days){
+    const dayHrs=fut.filter(h=>h.dk===dk);
+    let i=0;
+    while(i<dayHrs.length){
+      if((dayHrs[i].pMean||0)>=rateThr){
+        let j=i,total=0;
+        while(j<dayHrs.length&&(dayHrs[j].pMean||0)>=rateThr){total+=dayHrs[j].pMean||0;j++;}
+        if(total>RAIN_EVENT_MM){
+          const sH=dayHrs[i].h,eH=dayHrs[j-1].h+1;
+          const endTxt=eH>=24?'00:00 ('+t('next_day')+')':fH(eH);
+          return{dk,total:Math.round(total*10)/10,from:fH(sH),to:endTxt};
+        }
+        i=j;
+      } else i++;
+    }
   }
-  return null;                              // nicio perioadă care îndeplinește condiția în orizontul disponibil
+  return null;
 }
 
 // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -1826,9 +1826,10 @@ function renderDayCard(elId,dk,hours,refHour){
   const ds=dayStats(hours,dk);
   const wdir=ds?ds.predDir:null;
   const wArrow=(wdir!=null)?` <span class="arrow v-wind">${windArrow(wdir)}</span> <span class="dir">${windCard(wdir)}</span>`:'';
-  // Avertizare vânt >20 km/h — intervale orare din ziua respectivă
+  // Avertizare vânt >20 km/h — NUMAI orele viitoare (pentru azi) sau toate orele (zile viitoare)
+  // Exclude orele trecute din ziua curentă: dacă a bătut vânt la 10:00 dar acum e 16:00, nu mai contează.
   const WIND_ALERT_THR=20;
-  const dhWind=dayHours(hours,dk);
+  const dhWind=dayHours(hours,dk).filter(h=>dk!==dkNow()||h.h>=hNow());
   const windAlertHours=dhWind.filter(h=>(h.wMean||0)>WIND_ALERT_THR).map(h=>h.h);
   const windAlertIvs=groupIvs(windAlertHours);
   const windAlertHtml=windAlertIvs.length
