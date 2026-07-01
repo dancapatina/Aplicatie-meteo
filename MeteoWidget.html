@@ -183,12 +183,12 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
     </div>
   </div>
   <div class="ctrl-row" style="margin-top:1px">
-    <button onclick="openRadar('rain')"
+    <button onclick="openRadar('rain')" data-i18n="radar_btn"
       style="width:100%;background:rgba(14,79,115,.35);color:#7dd3fc;border:1px solid rgba(59,130,246,.35);
              border-radius:8px;padding:7px 10px;font-size:.78rem;font-weight:800;cursor:pointer;
              font-family:inherit;letter-spacing:.3px;transition:background .15s"
       onmouseover="this.style.background='rgba(14,79,115,.6)'" onmouseout="this.style.background='rgba(14,79,115,.35)'">
-      🛰️ Radar ploaie &amp; vânt · animație 72h
+      🛰️ Radar
     </button>
   </div>
   <div class="ctrl-row ref-row">
@@ -1688,7 +1688,10 @@ const I18N={
     prob_interval:'Interval probabil (ensemble P10–P90)',
     wind_alert:'⚠️ Vânt >',
     no_interval:'— niciun interval',
-    next_day:'ziua urm.',},  en:{
+    next_day:'ziua urm.',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Ploaie',radar_wind:'💨 Vânt',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Nori',radar_pressure:'🌀 Presiune',
+    radar_close:'✕ Închide',radar_title:'Radar · animație 72h',},  en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
@@ -1764,7 +1767,10 @@ const I18N={
     prob_interval:'Probable range (ensemble P10–P90)',
     wind_alert:'⚠️ Wind >',
     no_interval:'— no interval',
-    next_day:'next day',},
+    next_day:'next day',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Rain',radar_wind:'💨 Wind',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Clouds',radar_pressure:'🌀 Pressure',
+    radar_close:'✕ Close',radar_title:'Radar · 72h animation',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -1841,7 +1847,10 @@ const I18N={
     prob_interval:'Plage probable (ensemble P10–P90)',
     wind_alert:'⚠️ Vent >',
     no_interval:'— aucun intervalle',
-    next_day:'j. suiv.',},
+    next_day:'j. suiv.',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Pluie',radar_wind:'💨 Vent',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuages',radar_pressure:'🌀 Pression',
+    radar_close:'✕ Fermer',radar_title:'Radar · animation 72h',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -1918,7 +1927,10 @@ const I18N={
     prob_interval:'Rango probable (ensemble P10–P90)',
     wind_alert:'⚠️ Viento >',
     no_interval:'— sin intervalo',
-    next_day:'día sig.',},
+    next_day:'día sig.',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Lluvia',radar_wind:'💨 Viento',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Nubes',radar_pressure:'🌀 Presión',
+    radar_close:'✕ Cerrar',radar_title:'Radar · animación 72h',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -1995,7 +2007,10 @@ const I18N={
     prob_interval:'Wahrsch. Bereich (Ensemble P10–P90)',
     wind_alert:'⚠️ Wind >',
     no_interval:'— kein Intervall',
-    next_day:'nächst. Tag',},
+    next_day:'nächst. Tag',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Regen',radar_wind:'💨 Wind',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Wolken',radar_pressure:'🌀 Druck',
+    radar_close:'✕ Schließen',radar_title:'Radar · 72h-Animation',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2072,7 +2087,10 @@ const I18N={
     prob_interval:'Intervallo probabile (ensemble P10–P90)',
     wind_alert:'⚠️ Vento >',
     no_interval:'— nessun intervallo',
-    next_day:'giorno succ.',},
+    next_day:'giorno succ.',
+    radar_btn:'🛰️ Radar',radar_rain:'🌧 Pioggia',radar_wind:'💨 Vento',
+    radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuvole',radar_pressure:'🌀 Pressione',
+    radar_close:'✕ Chiudi',radar_title:'Radar · animazione 72h',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2501,7 +2519,7 @@ function openRadar(layer){
   document.querySelectorAll('.radar-btn').forEach(b=>b.classList.remove('active'));
   const ab=el('radar-btn-'+_radarLayer);if(ab)ab.classList.add('active');
   const locShort=(LOC_NAME||'Locație').split(',')[0].trim();
-  const lonStr=(LON>=0?LON.toFixed(2)+'°E':Math.abs(LON).toFixed(2)+'°V');
+  const lonStr=(LON>=0?LON.toFixed(2)+'°E':Math.abs(LON).toFixed(2)+'°W');
   const rl=el('radar-loc-lbl');
   if(rl)rl.textContent=`📍 ${locShort} · ${LAT.toFixed(2)}°N ${lonStr}`;
   const nl=el('radar-name-lbl');
@@ -2524,10 +2542,12 @@ function closeRadar(){
 
 function _updateRadarFrame(){
   const z=8,lat=LAT.toFixed(4),lon=LON.toFixed(4);
+  const lang=typeof LANG!=='undefined'?LANG:'ro';
   const url='https://embed.windy.com/embed.html?type=map&location=coordinates'
     +'&metricRain=mm&metricTemp=%C2%B0C&metricWind=km%2Fh'
     +'&zoom='+z+'&overlay='+_radarLayer+'&product=ecmwf&level=surface'
-    +'&lat='+lat+'&lon='+lon+'&detailLat='+lat+'&detailLon='+lon;
+    +'&lat='+lat+'&lon='+lon+'&detailLat='+lat+'&detailLon='+lon
+    +'&lang='+lang;
   el('radar-frame').src=url;
 }
 
@@ -2540,14 +2560,14 @@ document.addEventListener('keydown',e=>{
 <div id="radar-modal">
   <div class="radar-hdr">
     <div class="radar-layers">
-      <button class="radar-btn active" id="radar-btn-rain"     onclick="setRadarLayer('rain')">🌧 Ploaie</button>
-      <button class="radar-btn"        id="radar-btn-wind"     onclick="setRadarLayer('wind')">💨 Vânt</button>
-      <button class="radar-btn"        id="radar-btn-temp"     onclick="setRadarLayer('temp')">🌡 Temp.</button>
-      <button class="radar-btn"        id="radar-btn-clouds"   onclick="setRadarLayer('clouds')">☁ Nori</button>
-      <button class="radar-btn"        id="radar-btn-pressure" onclick="setRadarLayer('pressure')">🌀 Presiune</button>
+      <button class="radar-btn active" id="radar-btn-rain"     onclick="setRadarLayer('rain')"     data-i18n="radar_rain">🌧 Ploaie</button>
+      <button class="radar-btn"        id="radar-btn-wind"     onclick="setRadarLayer('wind')"     data-i18n="radar_wind">💨 Vânt</button>
+      <button class="radar-btn"        id="radar-btn-temp"     onclick="setRadarLayer('temp')"     data-i18n="radar_temp">🌡 Temp.</button>
+      <button class="radar-btn"        id="radar-btn-clouds"   onclick="setRadarLayer('clouds')"   data-i18n="radar_clouds">☁ Nori</button>
+      <button class="radar-btn"        id="radar-btn-pressure" onclick="setRadarLayer('pressure')" data-i18n="radar_pressure">🌀 Presiune</button>
     </div>
     <span id="radar-loc-lbl" class="radar-loc-lbl"></span>
-    <button class="radar-close" onclick="closeRadar()">✕ Închide</button>
+    <button class="radar-close" onclick="closeRadar()" data-i18n="radar_close">✕ Închide</button>
   </div>
   <div style="position:relative;flex:1;min-height:0;overflow:hidden">
     <iframe id="radar-frame" src=""
