@@ -1569,17 +1569,21 @@ function renderOfficialWarnings(){
     const L=owLevelClass(w.level);
     const typeNm=getOWTypeName(w.type);
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
-    const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
+    const perioada=[
+      w.effective?t('ow_from')+' '+fmtDtShort(w.effective):'',
+      w.expires?t('ow_until')+' '+fmtDtShort(w.expires):'',
+    ].filter(Boolean).join(' ');
     const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
       w.headline&&w.headline!==w.event?w.headline:'',
-      w.area?'Zone vizate: '+w.area:'',
-      perioada?'Interval: '+perioada:'',
-    ].filter(Boolean).join('\n')||'(fără detalii — verificați meteoromania.ro)';
+      w.area?t('ow_areas')+': '+w.area:'',
+      perioada?t('ow_interval')+': '+perioada:'',
+    ].filter(Boolean).join('\n')||t('ow_no_detail');
+    _owPanelTexts.set(idx,{body:bodyText,translated:false});
     return `<div class="ow-panel ${L.cls}" id="ow-full-${idx}">`+
       `<div class="ow-panel-head">${L.ic} <b>${esc(titlu)}</b></div>`+
       (w.area?`<div class="ow-meta">📍 ${esc(w.area)}</div>`:'')+
       (perioada?`<div class="ow-meta">🕒 ${perioada}</div>`:'')+
-      `<div class="ow-panel-body">${esc(bodyText)}</div>`+
+      `<div class="ow-panel-body" id="ow-body-${idx}">${esc(bodyText)}</div>`+
     `</div>`;
   }).join('');
 
@@ -1587,10 +1591,34 @@ function renderOfficialWarnings(){
   positionRefreshBtn();
 }
 
+// ── Traducere automată text avertizare (lazy, MyMemory API, cache) ──
+const _translCache=new Map();
+const _owPanelTexts=new Map();
+
+async function translateOWPanel(idx){
+  const entry=_owPanelTexts.get(idx);
+  if(!entry||entry.translated||LANG==='ro')return;
+  const bodyEl=el('ow-body-'+idx);
+  if(!bodyEl)return;
+  const origText=entry.body;
+  if(!origText||origText.length<4)return;
+  const cacheKey=LANG+'|'+origText.substring(0,80);
+  if(_translCache.has(cacheKey)){bodyEl.textContent=_translCache.get(cacheKey);entry.translated=true;return;}
+  bodyEl.style.opacity='0.5';bodyEl.textContent=t('ow_translating');
+  try{
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(origText.substring(0,480))}&langpair=ro|${LANG}`;
+    const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),7000);
+    const r=await fetch(url,{signal:ctrl.signal});
+    const d=await r.json();
+    if(d?.responseStatus===200&&d?.responseData?.translatedText){
+      const tr=d.responseData.translatedText;
+      _translCache.set(cacheKey,tr);bodyEl.textContent=tr;entry.translated=true;
+    } else {bodyEl.textContent=origText;}
+  }catch(e){bodyEl.textContent=origText;}
+  bodyEl.style.opacity='';
+}
+
 // Repoziționează butonul Actualizare sub banda de avertizări (#offwarn).
-// Când nu sunt avertizări, butonul stă la top:12px (poziția normală, sub #upd).
-// Când avertizările sunt vizibile, butonul se mută imediat sub ele (cu 6px gap),
-// astfel nu mai e acoperit de chipurile de avertizare pe mobil.
 function positionRefreshBtn(){
   const btn=el('w-btn-refresh');
   const ow=el('offwarn');
@@ -1604,7 +1632,7 @@ function owToggle(idx){
   f.classList.toggle('open');
   const caret=el('ow-caret-'+idx);
   if(caret)caret.textContent=f.classList.contains('open')?'▾':'▸';
-  // Re-ajustează butonul Actualizare (panoul deschis schimbă înălțimea #offwarn)
+  if(f.classList.contains('open')&&LANG!=='ro')translateOWPanel(idx);
   positionRefreshBtn();
 }
 
@@ -1697,7 +1725,9 @@ const I18N={
     ow_type_fog:'Ceață',ow_type_heat:'Caniculă',ow_type_cold:'Ger',
     ow_type_ice:'Polei',ow_type_freeze:'Precipitații îngheț',
     ow_chip_title:'Apasă pentru textul integral',
-    members:'membri',src_click_hint:'click pt include/exclude',src_inactive_hint:'sursă inactivă',},  en:{
+    members:'membri',src_click_hint:'click pt include/exclude',src_inactive_hint:'sursă inactivă',
+    ow_areas:'Zone vizate',ow_interval:'Interval',ow_from:'de la',ow_until:'până la',
+    ow_no_detail:'(fără detalii — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',},  en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
@@ -1782,7 +1812,9 @@ const I18N={
     ow_type_fog:'Fog',ow_type_heat:'Heat',ow_type_cold:'Cold',
     ow_type_ice:'Black ice',ow_type_freeze:'Freezing rain',
     ow_chip_title:'Click for full text',
-    members:'members',src_click_hint:'click to include/exclude',src_inactive_hint:'inactive source',},
+    members:'members',src_click_hint:'click to include/exclude',src_inactive_hint:'inactive source',
+    ow_areas:'Areas affected',ow_interval:'Period',ow_from:'from',ow_until:'until',
+    ow_no_detail:'(no details — check meteoromania.ro)',ow_translating:'⏳ Translating…',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -1868,7 +1900,9 @@ const I18N={
     ow_type_fog:'Brouillard',ow_type_heat:'Canicule',ow_type_cold:'Grand froid',
     ow_type_ice:'Verglas',ow_type_freeze:'Pluie verglaçante',
     ow_chip_title:'Cliquez pour le texte intégral',
-    members:'membres',src_click_hint:'cliquer pour inclure/exclure',src_inactive_hint:'source inactive',},
+    members:'membres',src_click_hint:'cliquer pour inclure/exclure',src_inactive_hint:'source inactive',
+    ow_areas:'Zones concernées',ow_interval:'Période',ow_from:'de',ow_until:"jusqu'à",
+    ow_no_detail:'(aucun détail — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -1954,7 +1988,9 @@ const I18N={
     ow_type_fog:'Niebla',ow_type_heat:'Calor extremo',ow_type_cold:'Frío extremo',
     ow_type_ice:'Hielo',ow_type_freeze:'Lluvia engelante',
     ow_chip_title:'Haz clic para ver el texto completo',
-    members:'miembros',src_click_hint:'clic para incluir/excluir',src_inactive_hint:'fuente inactiva',},
+    members:'miembros',src_click_hint:'clic para incluir/excluir',src_inactive_hint:'fuente inactiva',
+    ow_areas:'Zonas afectadas',ow_interval:'Período',ow_from:'desde',ow_until:'hasta',
+    ow_no_detail:'(sin detalles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2040,7 +2076,9 @@ const I18N={
     ow_type_fog:'Nebel',ow_type_heat:'Hitze',ow_type_cold:'Kälte',
     ow_type_ice:'Glatteis',ow_type_freeze:'Gefrierender Regen',
     ow_chip_title:'Klicken für vollständigen Text',
-    members:'Mitglieder',src_click_hint:'klicken zum Ein-/Ausschließen',src_inactive_hint:'inaktive Quelle',},
+    members:'Mitglieder',src_click_hint:'klicken zum Ein-/Ausschließen',src_inactive_hint:'inaktive Quelle',
+    ow_areas:'Betroffene Gebiete',ow_interval:'Zeitraum',ow_from:'von',ow_until:'bis',
+    ow_no_detail:'(keine Details — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2126,7 +2164,9 @@ const I18N={
     ow_type_fog:'Nebbia',ow_type_heat:'Caldo estremo',ow_type_cold:'Freddo estremo',
     ow_type_ice:'Ghiaccio',ow_type_freeze:'Pioggia ghiacciante',
     ow_chip_title:'Clicca per il testo completo',
-    members:'membri',src_click_hint:'clicca per includere/escludere',src_inactive_hint:'sorgente inattiva',},
+    members:'membri',src_click_hint:'clicca per includere/escludere',src_inactive_hint:'sorgente inattiva',
+    ow_areas:'Zone interessate',ow_interval:'Periodo',ow_from:'dalle',ow_until:'alle',
+    ow_no_detail:'(nessun dettaglio — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2199,8 +2239,8 @@ function setLang(code){
   if(!I18N[code])return;
   LANG=code;
   try{localStorage.setItem(LANG_KEY,code);}catch(e){}
+  _owPanelTexts.forEach(entry=>{entry.translated=false;});
   applyLang();
-  // re-randează componentele dinamice care conțin text localizat
   if(typeof loadWidget==='function')loadWidget();
 }
 window.addEventListener('storage',e=>{
