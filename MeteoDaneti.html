@@ -209,7 +209,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
       <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
       <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 Locația curentă</button>
       <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
-      <button class="btn loc-fixed active" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
+      <button class="btn loc-fixed" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
       <button class="btn loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
       <button class="btn loc-fixed" id="btn-raieti"  onclick="goFixed('raieti')">🏡 Raieti</button>
     </div>
@@ -1708,28 +1708,73 @@ function renderOfficialWarnings(){
     const L=owLevelClass(w.level);
     const typeNm=getOWTypeName(w.type);
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
-    const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
-    // Construiește textul descriptiv: folosim desc direct sau reconstruim din headline + zona + interval
+    const perioada=[
+      w.effective?t('ow_from')+' '+fmtDtShort(w.effective):'',
+      w.expires?t('ow_until')+' '+fmtDtShort(w.expires):'',
+    ].filter(Boolean).join(' ');
+    // Construiește textul descriptiv în română (se va traduce async la click dacă LANG≠'ro')
     const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
       w.headline&&w.headline!==w.event?w.headline:'',
-      w.area?'Zone vizate: '+w.area:'',
-      perioada?'Interval: '+perioada:'',
-    ].filter(Boolean).join('\n')||'(fără detalii disponibile — verificați meteoromania.ro)';
+      w.area?t('ow_areas')+': '+w.area:'',
+      perioada?t('ow_interval')+': '+perioada:'',
+    ].filter(Boolean).join('\n')||t('ow_no_detail');
+    // Stocare text original pentru traducere lazy
+    _owPanelTexts.set(idx,{body:bodyText,translated:false});
     return `<div class="ow-panel ${L.cls}" id="ow-full-${idx}">`+
       `<div class="ow-panel-head">${L.ic} <b>${esc(titlu)}</b></div>`+
       (w.area?`<div class="ow-meta">📍 ${esc(w.area)}</div>`:'')+
       (perioada?`<div class="ow-meta">🕒 ${perioada}</div>`:'')+
-      `<div class="ow-panel-body">${esc(bodyText)}</div>`+
+      `<div class="ow-panel-body" id="ow-body-${idx}">${esc(bodyText)}</div>`+
     `</div>`;
   }).join('');
 
   box.innerHTML=`<div class="ow-chips">${chips}</div>${panels}`;
 }
+
+// ── Traducere automată a textului de avertizare (lazy, la deschidere panel) ──
+// Folosește MyMemory API (gratuit, fără cheie, ~500 chars/req). Textul e mereu în
+// română (de la ANM sau Meteoalarm-RO) — se traduce la cerere în limba selectată.
+const _translCache=new Map();   // cache traduceri: 'lang|textKey' → translated
+const _owPanelTexts=new Map();  // idx → {body:string, translated:bool}
+
+async function translateOWPanel(idx){
+  const entry=_owPanelTexts.get(idx);
+  if(!entry||entry.translated||LANG==='ro')return;
+  const bodyEl=el('ow-body-'+idx);
+  if(!bodyEl)return;
+  const origText=entry.body;
+  if(!origText||origText.length<4)return;
+  const cacheKey=LANG+'|'+origText.substring(0,80);
+  if(_translCache.has(cacheKey)){
+    bodyEl.textContent=_translCache.get(cacheKey);
+    entry.translated=true;return;
+  }
+  bodyEl.style.opacity='0.5';
+  bodyEl.textContent=t('ow_translating');
+  try{
+    const chunk=origText.substring(0,480);          // limita MyMemory free tier
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=ro|${LANG}`;
+    const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),7000);
+    const r=await fetch(url,{signal:ctrl.signal});
+    const d=await r.json();
+    if(d?.responseStatus===200&&d?.responseData?.translatedText){
+      const tr=d.responseData.translatedText;
+      _translCache.set(cacheKey,tr);
+      bodyEl.textContent=tr;
+      entry.translated=true;
+    } else {bodyEl.textContent=origText;}
+  }catch(e){bodyEl.textContent=origText;}
+  bodyEl.style.opacity='';
+}
+
 function owToggle(idx){
   const f=el('ow-full-'+idx);if(!f)return;
   f.classList.toggle('open');
   const caret=el('ow-caret-'+idx);
   if(caret)caret.textContent=f.classList.contains('open')?'▾':'▸';
+  // Traduce lazy când panelul se deschide și limba nu e română
+  if(f.classList.contains('open')&&LANG!=='ro')translateOWPanel(idx);
+  if(typeof positionRefreshBtn==='function')positionRefreshBtn();
 }
 // escape minimal pt text din surse externe
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -1971,7 +2016,9 @@ const I18N={
     src_hint:'Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant din sursele selectate. Sursele inactive (✗) nu au date pentru locația curentă.',
     src_click_hint:'click pentru a include/exclude din prognoză',
     src_inactive_hint:'sursă inactivă (fără date la locație)',
-    src_description:'12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 modele ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) pentru azi+mâine · probabilitatea de ploaie/vânt vine din membrii ensemble · butonul ⭐ Best alege automat un set optimizat statistic per locație · actualizare automată din 15 în 15 minute',},
+    src_description:'12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 modele ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) pentru azi+mâine · probabilitatea de ploaie/vânt vine din membrii ensemble · butonul ⭐ Best alege automat un set optimizat statistic per locație · actualizare automată din 15 în 15 minute',
+    ow_areas:'Zone vizate',ow_interval:'Interval',ow_from:'de la',ow_until:'până la',
+    ow_no_detail:'(fără detalii disponibile — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',},
   en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
@@ -2064,7 +2111,9 @@ const I18N={
     src_hint:'Click an active source to include (✓) or exclude (○). Forecast recalculates instantly from selected sources. Inactive sources (✗) have no data for this location.',
     src_click_hint:'click to include/exclude from forecast',
     src_inactive_hint:'inactive source (no data for location)',
-    src_description:'12 deterministic models (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE models 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) for today+tomorrow · rain/wind probability from ensemble members · ⭐ Best auto-selects a statistically optimized set per location · auto-refresh every 15 minutes',},
+    src_description:'12 deterministic models (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE models 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) for today+tomorrow · rain/wind probability from ensemble members · ⭐ Best auto-selects a statistically optimized set per location · auto-refresh every 15 minutes',
+    ow_areas:'Areas affected',ow_interval:'Period',ow_from:'from',ow_until:'until',
+    ow_no_detail:'(no details available — check meteoromania.ro)',ow_translating:'⏳ Translating…',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -2157,7 +2206,9 @@ const I18N={
     src_hint:"Cliquez sur une source active pour l'inclure (✓) ou l'exclure (○). La prévision se recalcule instantanément. Les sources inactives (✗) n'ont pas de données.",
     src_click_hint:"cliquer pour inclure/exclure de la prévision",
     src_inactive_hint:'source inactive (pas de données pour ce lieu)',
-    src_description:"12 modèles déterministes (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modèles ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pluie/vent depuis l'ensemble · ⭐ Best sélectionne automatiquement un ensemble optimisé · actualisation auto toutes les 15 minutes",},
+    src_description:"12 modèles déterministes (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modèles ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pluie/vent depuis l'ensemble · ⭐ Best sélectionne automatiquement un ensemble optimisé · actualisation auto toutes les 15 minutes",
+    ow_areas:'Zones concernées',ow_interval:'Période',ow_from:'de',ow_until:"jusqu'à",
+    ow_no_detail:'(aucun détail disponible — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -2250,7 +2301,9 @@ const I18N={
     src_hint:'Haz clic en una fuente activa para incluirla (✓) o excluirla (○). El pronóstico se recalcula instantáneamente. Las fuentes inactivas (✗) no tienen datos.',
     src_click_hint:'clic para incluir/excluir del pronóstico',
     src_inactive_hint:'fuente inactiva (sin datos para esta ubicación)',
-    src_description:'12 modelos deterministas (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelos ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. lluvia/viento desde ensemble · ⭐ Best selecciona automáticamente un conjunto optimizado · actualización automática cada 15 minutos',},
+    src_description:'12 modelos deterministas (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelos ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. lluvia/viento desde ensemble · ⭐ Best selecciona automáticamente un conjunto optimizado · actualización automática cada 15 minutos',
+    ow_areas:'Zonas afectadas',ow_interval:'Período',ow_from:'desde',ow_until:'hasta',
+    ow_no_detail:'(sin detalles disponibles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2343,7 +2396,9 @@ const I18N={
     src_hint:'Klicken Sie auf eine aktive Quelle, um sie einzuschließen (✓) oder auszuschließen (○). Die Prognose wird sofort neu berechnet. Inaktive Quellen (✗) haben keine Daten.',
     src_click_hint:'klicken zum Ein-/Ausschließen aus der Prognose',
     src_inactive_hint:'inaktive Quelle (keine Daten für diesen Ort)',
-    src_description:'12 deterministische Modelle (inkl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE-Modelle 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · Regen/Wind-Wahrscheinlichkeit aus Ensemble · ⭐ Best wählt automatisch ein statistisch optimiertes Set · Auto-Aktualisierung alle 15 Minuten',},
+    src_description:'12 deterministische Modelle (inkl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE-Modelle 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · Regen/Wind-Wahrscheinlichkeit aus Ensemble · ⭐ Best wählt automatisch ein statistisch optimiertes Set · Auto-Aktualisierung alle 15 Minuten',
+    ow_areas:'Betroffene Gebiete',ow_interval:'Zeitraum',ow_from:'von',ow_until:'bis',
+    ow_no_detail:'(keine Details verfügbar — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2436,7 +2491,9 @@ const I18N={
     src_hint:'Clicca su una sorgente attiva per includerla (✓) o escluderla (○). La previsione si ricalcola istantaneamente. Le sorgenti inattive (✗) non hanno dati.',
     src_click_hint:'clicca per includere/escludere dalla previsione',
     src_inactive_hint:'sorgente inattiva (nessun dato per questa posizione)',
-    src_description:'12 modelli deterministici (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelli ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pioggia/vento dall\'ensemble · ⭐ Best seleziona automaticamente un set ottimizzato · aggiornamento automatico ogni 15 minuti',},
+    src_description:'12 modelli deterministici (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelli ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pioggia/vento dall\'ensemble · ⭐ Best seleziona automaticamente un set ottimizzato · aggiornamento automatico ogni 15 minuti',
+    ow_areas:'Zone interessate',ow_interval:'Periodo',ow_from:'dalle',ow_until:'alle',
+    ow_no_detail:'(nessun dettaglio disponibile — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2519,6 +2576,8 @@ function setLang(code){
   if(!I18N[code])return;
   LANG=code;
   try{localStorage.setItem(LANG_KEY,code);}catch(e){}
+  // Resetează traducerile avertizărilor — textul trebuie retradus în noua limbă
+  _owPanelTexts.forEach(entry=>{entry.translated=false;});
   applyLang();
   if(_lastResults)applyResults(_lastResults);
 }
@@ -3187,11 +3246,12 @@ const LOC_META={
   york:   {admin1:'England',admin2:'York'},
 };
 function updateFixedBtns(){
-  el('btn-daneti') .classList.toggle('active',_locKind==='daneti');
-  el('btn-craiova').classList.toggle('active',_locKind==='craiova');
-  const gy=el('btn-york');   if(gy)gy.classList.toggle('active',_locKind==='york');
-  const gr=el('btn-raieti'); if(gr)gr.classList.toggle('active',_locKind==='raieti');
-  const g=el('btn-gps');     if(g) g.classList.toggle('active',_locKind==='gps');
+  ['daneti','craiova','york','raieti','gps'].forEach(loc=>{
+    const btn=el('btn-'+loc);
+    if(!btn)return;
+    if(_locKind===loc)btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
 }
 function goFixed(which){
   const locs={daneti:HOME,craiova:CRAIOVA,york:YORK,raieti:RAIETI};
@@ -3199,12 +3259,13 @@ function goFixed(which){
   LAT=loc.lat;LON=loc.lon;TZ=loc.tz;LOC_NAME=loc.name;_locKind=which;
   const m=LOC_META[which]||{};
   _locAdmin1=m.admin1||'';_locAdmin2=m.admin2||'';
+  updateFixedBtns();          // imediat după _locKind — nu mai există risc de override
   ELEV_OVERRIDE=null;syncElevInput();
   updateLocnameDisplay();
   el('loc-res').style.display='none';el('loc-q').value='';
   if(countryFromTZ(TZ)!==_owFetchedFor){_owCache=[];renderOfficialWarnings();}
   tickClock();
-  updateFixedBtns();saveLastLoc();clearCards();
+  saveLastLoc();clearCards();
   if(_bestMode)applyBestForLocation();
   isFirst=true;loadWeather();
 }
