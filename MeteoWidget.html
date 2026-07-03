@@ -175,7 +175,7 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   <!-- Rezultate căutare -->
   <div id="w-loc-res" style="display:none;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto"></div>
   <div class="ctrl-row">
-    <span class="ctrl-lbl">🛰 Surse:</span>
+    <span class="ctrl-lbl" data-i18n="sources_title">🛰 Surse:</span>
     <div class="src-btns">
       <button class="src-btn active" id="btn-best"  onclick="setSrc('best')" data-i18n="best">Best</button>
       <button class="src-btn"        id="btn-toate" onclick="setSrc('toate')" data-i18n="all">Toate</button>
@@ -1008,12 +1008,12 @@ function render(hours){
 
 // ── Avertizări oficiale (Meteoalarm) — sistem identic cu MeteoDaneti ────────
 
-const OW_TYPES={1:'Vânt',2:'Ninsoare/Gheață',3:'Furtună',4:'Ceață',5:'Caniculă',
-  6:'Ger',7:'Incendiu',8:'Inundații',9:'Ploaie',10:'Inundații costiere',
-  11:'Avalanșe',12:'Ploi torențiale',13:'Furtună'};
+const OW_TYPE_KEYS={1:'ow_type_wind',2:'ow_type_snow',3:'ow_type_storm',4:'ow_type_fog',
+  5:'ow_type_heat',8:'ow_type_cold',9:'ow_type_ice',10:'ow_type_freeze'};
+function getOWTypeName(n){const k=OW_TYPE_KEYS[parseInt(n,10)];return k?t(k):t('ow_warning');}
 let _owCache=[];       // avertizările curente afișate
-let _owFetchedFor='';  // pt ce țară am încărcat ultima dată
-let _owStatus='';      // '' | 'non-europe' | 'no-warnings' | 'ok' | 'country-only' | 'other-regions' | 'proxy-fail'
+let _owFetchedFor='';
+let _owStatus='';
 let _owAllCount=0;
 let _owErrDetail='';
 let _owCountryWide=0;
@@ -1036,9 +1036,9 @@ function countryFromTZ(tz){
 
 function owLevelClass(lvl){
   const n=parseInt(lvl,10);
-  if(n===2)return{cls:'ow-yellow',ic:'🟡',nm:'Galben'};
-  if(n===3)return{cls:'ow-orange',ic:'🟠',nm:'Portocaliu'};
-  if(n>=4) return{cls:'ow-red',   ic:'🔴',nm:'Roșu'};
+  if(n===2)return{cls:'ow-yellow',ic:'🟡',nm:t('ow_yellow')};
+  if(n===3)return{cls:'ow-orange',ic:'🟠',nm:t('ow_orange')};
+  if(n>=4) return{cls:'ow-red',   ic:'🔴',nm:t('ow_red')};
   return{cls:'ow-unknown',ic:'⚠️',nm:''};
 }
 
@@ -1558,16 +1558,16 @@ function renderOfficialWarnings(){
   box.style.display='flex';
   const chips=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
-    const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
+    const typeNm=getOWTypeName(w.type);
     const eticheta=typeNm||L.nm||'Avertizare';
-    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="Apasă pentru textul integral">`+
+    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="${t('ow_chip_title')}">`+
       `<span class="ow-chip-ico">${L.ic}</span><span class="ow-chip-lbl">${esc(eticheta)}</span>`+
       `<span class="ow-chip-caret" id="ow-caret-${idx}">▸</span></button>`;
   }).join('');
 
   const panels=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
-    const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
+    const typeNm=getOWTypeName(w.type);
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
     const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
@@ -1691,7 +1691,13 @@ const I18N={
     next_day:'ziua urm.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Ploaie',radar_wind:'💨 Vânt',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nori',radar_pressure:'🌀 Presiune',
-    radar_close:'✕ Închide',radar_title:'Radar · animație 72h',},  en:{
+    radar_close:'✕ Închide',radar_title:'Radar · animație 72h',
+    ow_yellow:'Galben',ow_orange:'Portocaliu',ow_red:'Roșu',ow_warning:'Avertizare',
+    ow_type_wind:'Vânt',ow_type_snow:'Ninsoare/Gheață',ow_type_storm:'Furtună',
+    ow_type_fog:'Ceață',ow_type_heat:'Caniculă',ow_type_cold:'Ger',
+    ow_type_ice:'Polei',ow_type_freeze:'Precipitații îngheț',
+    ow_chip_title:'Apasă pentru textul integral',
+    members:'membri',src_click_hint:'click pt include/exclude',src_inactive_hint:'sursă inactivă',},  en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
@@ -1770,7 +1776,13 @@ const I18N={
     next_day:'next day',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Rain',radar_wind:'💨 Wind',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Clouds',radar_pressure:'🌀 Pressure',
-    radar_close:'✕ Close',radar_title:'Radar · 72h animation',},
+    radar_close:'✕ Close',radar_title:'Radar · 72h animation',
+    ow_yellow:'Yellow',ow_orange:'Orange',ow_red:'Red',ow_warning:'Warning',
+    ow_type_wind:'Wind',ow_type_snow:'Snow/Ice',ow_type_storm:'Thunderstorm',
+    ow_type_fog:'Fog',ow_type_heat:'Heat',ow_type_cold:'Cold',
+    ow_type_ice:'Black ice',ow_type_freeze:'Freezing rain',
+    ow_chip_title:'Click for full text',
+    members:'members',src_click_hint:'click to include/exclude',src_inactive_hint:'inactive source',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -1850,7 +1862,13 @@ const I18N={
     next_day:'j. suiv.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Pluie',radar_wind:'💨 Vent',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuages',radar_pressure:'🌀 Pression',
-    radar_close:'✕ Fermer',radar_title:'Radar · animation 72h',},
+    radar_close:'✕ Fermer',radar_title:'Radar · animation 72h',
+    ow_yellow:'Jaune',ow_orange:'Orange',ow_red:'Rouge',ow_warning:'Alerte',
+    ow_type_wind:'Vent',ow_type_snow:'Neige/Glace',ow_type_storm:'Orage',
+    ow_type_fog:'Brouillard',ow_type_heat:'Canicule',ow_type_cold:'Grand froid',
+    ow_type_ice:'Verglas',ow_type_freeze:'Pluie verglaçante',
+    ow_chip_title:'Cliquez pour le texte intégral',
+    members:'membres',src_click_hint:'cliquer pour inclure/exclure',src_inactive_hint:'source inactive',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -1930,7 +1948,13 @@ const I18N={
     next_day:'día sig.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Lluvia',radar_wind:'💨 Viento',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nubes',radar_pressure:'🌀 Presión',
-    radar_close:'✕ Cerrar',radar_title:'Radar · animación 72h',},
+    radar_close:'✕ Cerrar',radar_title:'Radar · animación 72h',
+    ow_yellow:'Amarillo',ow_orange:'Naranja',ow_red:'Rojo',ow_warning:'Aviso',
+    ow_type_wind:'Viento',ow_type_snow:'Nieve/Hielo',ow_type_storm:'Tormenta',
+    ow_type_fog:'Niebla',ow_type_heat:'Calor extremo',ow_type_cold:'Frío extremo',
+    ow_type_ice:'Hielo',ow_type_freeze:'Lluvia engelante',
+    ow_chip_title:'Haz clic para ver el texto completo',
+    members:'miembros',src_click_hint:'clic para incluir/excluir',src_inactive_hint:'fuente inactiva',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2010,7 +2034,13 @@ const I18N={
     next_day:'nächst. Tag',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Regen',radar_wind:'💨 Wind',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Wolken',radar_pressure:'🌀 Druck',
-    radar_close:'✕ Schließen',radar_title:'Radar · 72h-Animation',},
+    radar_close:'✕ Schließen',radar_title:'Radar · 72h-Animation',
+    ow_yellow:'Gelb',ow_orange:'Orange',ow_red:'Rot',ow_warning:'Warnung',
+    ow_type_wind:'Wind',ow_type_snow:'Schnee/Eis',ow_type_storm:'Gewitter',
+    ow_type_fog:'Nebel',ow_type_heat:'Hitze',ow_type_cold:'Kälte',
+    ow_type_ice:'Glatteis',ow_type_freeze:'Gefrierender Regen',
+    ow_chip_title:'Klicken für vollständigen Text',
+    members:'Mitglieder',src_click_hint:'klicken zum Ein-/Ausschließen',src_inactive_hint:'inaktive Quelle',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2090,7 +2120,13 @@ const I18N={
     next_day:'giorno succ.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Pioggia',radar_wind:'💨 Vento',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuvole',radar_pressure:'🌀 Pressione',
-    radar_close:'✕ Chiudi',radar_title:'Radar · animazione 72h',},
+    radar_close:'✕ Chiudi',radar_title:'Radar · animazione 72h',
+    ow_yellow:'Giallo',ow_orange:'Arancione',ow_red:'Rosso',ow_warning:'Allerta',
+    ow_type_wind:'Vento',ow_type_snow:'Neve/Ghiaccio',ow_type_storm:'Temporale',
+    ow_type_fog:'Nebbia',ow_type_heat:'Caldo estremo',ow_type_cold:'Freddo estremo',
+    ow_type_ice:'Ghiaccio',ow_type_freeze:'Pioggia ghiacciante',
+    ow_chip_title:'Clicca per il testo completo',
+    members:'membri',src_click_hint:'clicca per includere/escludere',src_inactive_hint:'sorgente inattiva',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
