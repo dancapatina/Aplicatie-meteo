@@ -2838,15 +2838,19 @@ async function loadWeather(){
   const first=isFirst;isFirst=false;
   if(!first)show('ban-bg',true);
   el('btn-now').disabled=true;show('ban-err',false);
-
-  const results=await Promise.all([...OM_MODELS.map(m=>fetchOM(m)),fetchMetNo(),...ENS_MODELS.map(m=>fetchEns(m))]);
-  _lastResults=results;
-
-  // prima rulare cu o locație nouă: dacă surse noi au apărut, lasă selecția existentă;
-  // dar asigură-te că orice sursă activă necunoscută anterior e selectată implicit
-  results.forEach(r=>{if(r.ok&&!_seenIds.has(srcId(r))){_seenIds.add(srcId(r));selectedSources.add(srcId(r));}});
-
-  applyResults(results);
+  try{
+    const results=await Promise.all([...OM_MODELS.map(m=>fetchOM(m)),fetchMetNo(),...ENS_MODELS.map(m=>fetchEns(m))]);
+    _lastResults=results;
+    results.forEach(r=>{if(r.ok&&!_seenIds.has(srcId(r))){_seenIds.add(srcId(r));selectedSources.add(srcId(r));}});
+    applyResults(results);
+  }catch(err){
+    // Excepție neașteptată (ex. din checkNotifications, renderWeek etc.) — logăm și continuăm
+    console.error('[loadWeather] eroare neașteptată:', err);
+    show('ban-bg',false);
+  }finally{
+    // Reactivăm ÎNTOTDEAUNA butonul — indiferent dacă applyResults a reușit sau nu
+    el('btn-now').disabled=false;
+  }
 }
 const _seenIds=new Set([...OM_MODELS.map(m=>m.id),METNO.id,...ENS_MODELS.map(m=>m.id)]);
 
