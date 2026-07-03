@@ -314,22 +314,19 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <!-- SURSE -->
 <div class="sec">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-    <div class="sec-title" style="font-size:.92rem;margin:0">📡 Surse (<span id="ok-cnt">—</span>)</div>
+    <div class="sec-title" style="font-size:.92rem;margin:0"><span data-i18n="sources_title">📡 Surse</span> (<span id="ok-cnt">—</span>)</div>
     <div style="display:flex;gap:6px">
       <button class="btn src-toggle" id="btn-best" onclick="selectBestSources()">⭐ Best</button>
       <button class="btn src-toggle" id="btn-all"  onclick="selectAllSources()">✓ Toate</button>
       <button class="btn src-toggle" id="btn-none" onclick="selectNoSources()">○ Niciuna</button>
     </div>
   </div>
-  <div style="color:#7c93ad;font-size:.74rem;margin-bottom:7px">
+  <div style="color:#7c93ad;font-size:.74rem;margin-bottom:7px" data-i18n="src_hint">
     Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant doar din sursele selectate. Sursele inactive (✗) nu au date pentru locația curentă.
   </div>
   <div class="mbadges" id="mbadges"></div>
-  <div class="foot">
-    12 modele deterministe (incl. <b>ECMWF IFS 9km</b>, ECMWF AIFS, ARPEGE Europa) + MET Norway, plus <b>2 modele ENSEMBLE</b> 🎯 (ECMWF ENS 51 membri, ICON-EU EPS 40 membri) pentru azi+mâine ·
-    probabilitatea de ploaie/vânt vine prioritar din membrii ensemble (probabilitate reală) ·
-    butonul <b>⭐ Best</b> alege automat un set <b>optimizat statistic</b> per locație: 2 ensemble (ancore cu 91 membri combinați) + 3-4 deterministe genuin independente, fără perechi corelate (ex. ICON ENS + ICON determinist nu se folosesc împreună) ·
-    <b>actualizare automată din 15 în 15 minute</b> · fără tokeni Claude
+  <div class="foot" id="src-description" data-i18n="src_description">
+    12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE Europa) + MET Norway, plus 2 modele ENSEMBLE 🎯 pentru azi+mâine · actualizare automată din 15 în 15 minute
   </div>
 </div>
 
@@ -353,7 +350,7 @@ let ELEV_OVERRIDE=null;   // altitudine fixată manual (m). null = auto (DEM 90 
 let _resolvedElev=null;   // altitudinea efectiv folosită de API (citită din răspuns)
 
 let REFRESH_MS=15*60*1000;                 // 15 minute (implicit; reconfigurabil din selector, pas 15 min → 3h)
-let WIND_MIN=8, RAIN_MIN=4.0;              // praguri fizice (ajustabile): km/h și l/m²
+let WIND_MIN=8, RAIN_MIN=1.0;              // praguri fizice (ajustabile): km/h și l/m²
 let P_LOW=40, P_HIGH=70;                   // praguri de PROBABILITATE (%) — ploaie, vânt, ger, caniculă
 let FROST_T=0, HEAT_T=35;                  // praguri fizice Pilon C (°C): ger ≤ FROST_T, caniculă ≥ HEAT_T
 const LS_KEY='meteo_settings_v2';          // localStorage: locație + praguri persistente
@@ -1094,14 +1091,15 @@ function countryFromTZ(tz){
 // Mapare nivel awareness Meteoalarm → clasă CSS + iconiță
 function owLevelClass(lvl){
   const n=parseInt(lvl,10);
-  if(n===2)return{cls:'ow-yellow',ic:'🟡',nm:'Galben'};
-  if(n===3)return{cls:'ow-orange',ic:'🟠',nm:'Portocaliu'};
-  if(n>=4) return{cls:'ow-red',   ic:'🔴',nm:'Roșu'};
+  if(n===2)return{cls:'ow-yellow',ic:'🟡',nm:t('ow_yellow')};
+  if(n===3)return{cls:'ow-orange',ic:'🟠',nm:t('ow_orange')};
+  if(n>=4) return{cls:'ow-red',   ic:'🔴',nm:t('ow_red')};
   return{cls:'ow-unknown',ic:'⚠️',nm:''};
 }
-const OW_TYPES={1:'Vânt',2:'Ninsoare/Gheață',3:'Furtună',4:'Ceață',5:'Caniculă',
-  6:'Ger',7:'Incendiu',8:'Inundații',9:'Ploaie',10:'Inundații costiere',
-  11:'Avalanșe',12:'Ploi torențiale',13:'Furtună'};
+// Tipuri avertizare CAP → chei i18n (traduse la runtime prin t())
+const OW_TYPE_KEYS={1:'ow_type_wind',2:'ow_type_snow',3:'ow_type_storm',4:'ow_type_fog',
+  5:'ow_type_heat',8:'ow_type_cold',9:'ow_type_ice',10:'ow_type_freeze'};
+function getOWTypeName(n){const k=OW_TYPE_KEYS[parseInt(n,10)];return k?t(k):t('ow_warning');}
 
 let _owCache=[];       // avertizările curente afișate
 let _owFetchedFor='';  // pt ce țară am încărcat ultima dată
@@ -1699,16 +1697,16 @@ function renderOfficialWarnings(){
   box.style.display='flex';
   const chips=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
-    const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
+    const typeNm=getOWTypeName(w.type);
     const eticheta=typeNm||L.nm||'Avertizare';
-    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="Apasă pentru textul integral">`+
+    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="${t('ow_chip_title')}">`+
       `<span class="ow-chip-ico">${L.ic}</span><span class="ow-chip-lbl">${esc(eticheta)}</span>`+
       `<span class="ow-chip-caret" id="ow-caret-${idx}">▸</span></button>`;
   }).join('');
 
   const panels=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
-    const typeNm=OW_TYPES[parseInt(w.type,10)]||'';
+    const typeNm=getOWTypeName(w.type);
     const titlu=typeNm?`${L.nm} — ${typeNm}`:(w.event||w.headline);
     const perioada=[w.effective?'de la '+fmtDtShort(w.effective):'',w.expires?'până la '+fmtDtShort(w.expires):''].filter(Boolean).join(' ');
     // Construiește textul descriptiv: folosim desc direct sau reconstruim din headline + zona + interval
@@ -1960,7 +1958,20 @@ const I18N={
     next_day:'ziua urm.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Ploaie',radar_wind:'💨 Vânt',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nori',radar_pressure:'🌀 Presiune',
-    radar_close:'✕ Închide',radar_title:'Radar · animație 72h',},
+    radar_close:'✕ Închide',radar_title:'Radar · animație 72h',
+    ow_yellow:'Galben',ow_orange:'Portocaliu',ow_red:'Roșu',ow_warning:'Avertizare',
+    ow_type_wind:'Vânt',ow_type_snow:'Ninsoare/Gheață',ow_type_storm:'Furtună',
+    ow_type_fog:'Ceață',ow_type_heat:'Caniculă',ow_type_cold:'Ger',
+    ow_type_ice:'Polei',ow_type_freeze:'Precipitații îngheț',
+    ow_chip_title:'Apasă pentru textul integral',
+    elev_fixed:'fixat',elev_auto:'auto DEM',sources_used:'surse folosite',
+    updated_at:'actualizat',time_now:'acum',time_at:'la ',
+    week_foot:'Sus = max, jos = min. Click pe o zi pentru valorile orare. Săgeata = direcția vântului (predominant, ponderat). Precipitații = total l/m²/zi.',
+    sources_title:'📡 Surse',members:'membri',
+    src_hint:'Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant din sursele selectate. Sursele inactive (✗) nu au date pentru locația curentă.',
+    src_click_hint:'click pentru a include/exclude din prognoză',
+    src_inactive_hint:'sursă inactivă (fără date la locație)',
+    src_description:'12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 modele ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) pentru azi+mâine · probabilitatea de ploaie/vânt vine din membrii ensemble · butonul ⭐ Best alege automat un set optimizat statistic per locație · actualizare automată din 15 în 15 minute',},
   en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
@@ -2040,7 +2051,20 @@ const I18N={
     next_day:'next day',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Rain',radar_wind:'💨 Wind',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Clouds',radar_pressure:'🌀 Pressure',
-    radar_close:'✕ Close',radar_title:'Radar · 72h animation',},
+    radar_close:'✕ Close',radar_title:'Radar · 72h animation',
+    ow_yellow:'Yellow',ow_orange:'Orange',ow_red:'Red',ow_warning:'Warning',
+    ow_type_wind:'Wind',ow_type_snow:'Snow/Ice',ow_type_storm:'Thunderstorm',
+    ow_type_fog:'Fog',ow_type_heat:'Heat',ow_type_cold:'Cold',
+    ow_type_ice:'Black ice',ow_type_freeze:'Freezing rain',
+    ow_chip_title:'Click for full text',
+    elev_fixed:'fixed',elev_auto:'auto DEM',sources_used:'sources used',
+    updated_at:'updated',time_now:'now',time_at:'at ',
+    week_foot:'Top = max, bottom = min. Click a day for hourly values. Arrow = wind direction (dominant, weighted). Precipitation = total l/m²/day.',
+    sources_title:'📡 Sources',members:'members',
+    src_hint:'Click an active source to include (✓) or exclude (○). Forecast recalculates instantly from selected sources. Inactive sources (✗) have no data for this location.',
+    src_click_hint:'click to include/exclude from forecast',
+    src_inactive_hint:'inactive source (no data for location)',
+    src_description:'12 deterministic models (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE models 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) for today+tomorrow · rain/wind probability from ensemble members · ⭐ Best auto-selects a statistically optimized set per location · auto-refresh every 15 minutes',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -2120,7 +2144,20 @@ const I18N={
     next_day:'j. suiv.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Pluie',radar_wind:'💨 Vent',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuages',radar_pressure:'🌀 Pression',
-    radar_close:'✕ Fermer',radar_title:'Radar · animation 72h',},
+    radar_close:'✕ Fermer',radar_title:'Radar · animation 72h',
+    ow_yellow:'Jaune',ow_orange:'Orange',ow_red:'Rouge',ow_warning:'Alerte',
+    ow_type_wind:'Vent',ow_type_snow:'Neige/Glace',ow_type_storm:'Orage',
+    ow_type_fog:'Brouillard',ow_type_heat:'Canicule',ow_type_cold:'Grand froid',
+    ow_type_ice:'Verglas',ow_type_freeze:'Pluie verglaçante',
+    ow_chip_title:'Cliquez pour le texte intégral',
+    elev_fixed:'fixe',elev_auto:'DEM auto',sources_used:'sources utilisées',
+    updated_at:'actualisé',time_now:'maintenant',time_at:'à ',
+    week_foot:"Haut = max, bas = min. Cliquez sur un jour pour les valeurs horaires. Flèche = direction du vent (dominante, pondérée). Précipitations = total l/m²/jour.",
+    sources_title:'📡 Sources',members:'membres',
+    src_hint:"Cliquez sur une source active pour l'inclure (✓) ou l'exclure (○). La prévision se recalcule instantanément. Les sources inactives (✗) n'ont pas de données.",
+    src_click_hint:"cliquer pour inclure/exclure de la prévision",
+    src_inactive_hint:'source inactive (pas de données pour ce lieu)',
+    src_description:"12 modèles déterministes (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modèles ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pluie/vent depuis l'ensemble · ⭐ Best sélectionne automatiquement un ensemble optimisé · actualisation auto toutes les 15 minutes",},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -2200,7 +2237,20 @@ const I18N={
     next_day:'día sig.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Lluvia',radar_wind:'💨 Viento',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nubes',radar_pressure:'🌀 Presión',
-    radar_close:'✕ Cerrar',radar_title:'Radar · animación 72h',},
+    radar_close:'✕ Cerrar',radar_title:'Radar · animación 72h',
+    ow_yellow:'Amarillo',ow_orange:'Naranja',ow_red:'Rojo',ow_warning:'Aviso',
+    ow_type_wind:'Viento',ow_type_snow:'Nieve/Hielo',ow_type_storm:'Tormenta',
+    ow_type_fog:'Niebla',ow_type_heat:'Calor extremo',ow_type_cold:'Frío extremo',
+    ow_type_ice:'Hielo en calzada',ow_type_freeze:'Lluvia engelante',
+    ow_chip_title:'Haz clic para ver el texto completo',
+    elev_fixed:'fijo',elev_auto:'DEM auto',sources_used:'fuentes usadas',
+    updated_at:'actualizado',time_now:'ahora',time_at:'a las ',
+    week_foot:'Arriba = máx, abajo = mín. Haz clic en un día para los valores por hora. Flecha = dirección del viento (dominante, ponderada). Precipitación = total l/m²/día.',
+    sources_title:'📡 Fuentes',members:'miembros',
+    src_hint:'Haz clic en una fuente activa para incluirla (✓) o excluirla (○). El pronóstico se recalcula instantáneamente. Las fuentes inactivas (✗) no tienen datos.',
+    src_click_hint:'clic para incluir/excluir del pronóstico',
+    src_inactive_hint:'fuente inactiva (sin datos para esta ubicación)',
+    src_description:'12 modelos deterministas (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelos ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. lluvia/viento desde ensemble · ⭐ Best selecciona automáticamente un conjunto optimizado · actualización automática cada 15 minutos',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2280,7 +2330,20 @@ const I18N={
     next_day:'nächst. Tag',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Regen',radar_wind:'💨 Wind',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Wolken',radar_pressure:'🌀 Druck',
-    radar_close:'✕ Schließen',radar_title:'Radar · 72h-Animation',},
+    radar_close:'✕ Schließen',radar_title:'Radar · 72h-Animation',
+    ow_yellow:'Gelb',ow_orange:'Orange',ow_red:'Rot',ow_warning:'Warnung',
+    ow_type_wind:'Wind',ow_type_snow:'Schnee/Eis',ow_type_storm:'Gewitter',
+    ow_type_fog:'Nebel',ow_type_heat:'Hitze',ow_type_cold:'Kälte',
+    ow_type_ice:'Glatteis',ow_type_freeze:'Gefrierender Regen',
+    ow_chip_title:'Klicken für vollständigen Text',
+    elev_fixed:'fixiert',elev_auto:'DEM auto',sources_used:'Quellen genutzt',
+    updated_at:'aktualisiert',time_now:'jetzt',time_at:'um ',
+    week_foot:'Oben = Max, unten = Min. Klicken Sie auf einen Tag für Stundenwerte. Pfeil = Windrichtung (dominant, gewichtet). Niederschlag = Gesamt l/m²/Tag.',
+    sources_title:'📡 Quellen',members:'Mitglieder',
+    src_hint:'Klicken Sie auf eine aktive Quelle, um sie einzuschließen (✓) oder auszuschließen (○). Die Prognose wird sofort neu berechnet. Inaktive Quellen (✗) haben keine Daten.',
+    src_click_hint:'klicken zum Ein-/Ausschließen aus der Prognose',
+    src_inactive_hint:'inaktive Quelle (keine Daten für diesen Ort)',
+    src_description:'12 deterministische Modelle (inkl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE-Modelle 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · Regen/Wind-Wahrscheinlichkeit aus Ensemble · ⭐ Best wählt automatisch ein statistisch optimiertes Set · Auto-Aktualisierung alle 15 Minuten',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2360,7 +2423,20 @@ const I18N={
     next_day:'giorno succ.',
     radar_btn:'🛰️ Radar',radar_rain:'🌧 Pioggia',radar_wind:'💨 Vento',
     radar_temp:'🌡 Temp.',radar_clouds:'☁ Nuvole',radar_pressure:'🌀 Pressione',
-    radar_close:'✕ Chiudi',radar_title:'Radar · animazione 72h',},
+    radar_close:'✕ Chiudi',radar_title:'Radar · animazione 72h',
+    ow_yellow:'Giallo',ow_orange:'Arancione',ow_red:'Rosso',ow_warning:'Allerta',
+    ow_type_wind:'Vento',ow_type_snow:'Neve/Ghiaccio',ow_type_storm:'Temporale',
+    ow_type_fog:'Nebbia',ow_type_heat:'Caldo estremo',ow_type_cold:'Freddo estremo',
+    ow_type_ice:'Ghiaccio',ow_type_freeze:'Pioggia ghiacciante',
+    ow_chip_title:'Clicca per il testo completo',
+    elev_fixed:'fisso',elev_auto:'DEM auto',sources_used:'sorgenti usate',
+    updated_at:'aggiornato',time_now:'adesso',time_at:'alle ',
+    week_foot:'Sopra = max, sotto = min. Clicca su un giorno per i valori orari. Freccia = direzione del vento (dominante, ponderata). Precipitazioni = totale l/m²/giorno.',
+    sources_title:'📡 Sorgenti',members:'membri',
+    src_hint:'Clicca su una sorgente attiva per includerla (✓) o escluderla (○). La previsione si ricalcola istantaneamente. Le sorgenti inattive (✗) non hanno dati.',
+    src_click_hint:'clicca per includere/escludere dalla previsione',
+    src_inactive_hint:'sorgente inattiva (nessun dato per questa posizione)',
+    src_description:'12 modelli deterministici (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelli ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pioggia/vento dall\'ensemble · ⭐ Best seleziona automaticamente un set ottimizzato · aggiornamento automatico ogni 15 minuti',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2436,6 +2512,8 @@ function applyLang(){
   // Toggle orar
   const togH=el('tog-h');
   if(togH){const open=togH.getAttribute('data-open')==='1';togH.textContent=open?t('hide_hourly'):t('show_hourly');}
+  // Re-randează badge-urile de modele (traducere membri + title-uri)
+  if(typeof _lastValid!=='undefined'&&_lastValid&&_lastValid.length)renderModels(_lastValid);
 }
 function setLang(code){
   if(!I18N[code])return;
@@ -2506,7 +2584,7 @@ function renderWeek(hours){
       <tr><td class="rowlbl">${t('row_dew')}</td>${rowDew}</tr>
     </tbody>
   </table></div>
-  <div class="foot">Sus = max, jos = min. <b>Click pe o zi</b> pentru valorile orare ale zilei. Săgeata = direcția în care suflă vântul (predominant, ponderat după viteză). Precipitații = total l/m²/zi.</div>`;
+  <div class="foot">${t('week_foot')}</div>`;
 }
 
 // ── Render valori orare 7 zile ──────────────────────────────────────────────
@@ -2546,6 +2624,7 @@ function renderHourly(hours){
 function srcId(r){return r.model.id;}
 function renderModels(results){
   let okCount=0, usedCount=0;
+  _lastValid=results;
   el('mbadges').innerHTML=results.map(r=>{
     const id=srcId(r);
     const sel=selectedSources.has(id);
@@ -2556,7 +2635,8 @@ function renderModels(results){
     if(!r.ok){cls='err';mark='✗';}
     else if(sel){cls='ok';mark='✓';}
     else{cls='off';mark='○';}
-    return`<div class="mbadge ${cls}" data-id="${id}" data-ok="${r.ok?1:0}" onclick="toggleSource('${id}')" title="${r.ok?'click pentru a include/exclude din prognoză':'sursă inactivă (fără date la locație)'}">${r.model.flag} <span>${mark}</span> ${r.model.lbl}</div>`;
+    const lbl=r.model.lbl.replace(/\b(membri|members|membres|miembros|Mitglieder|membri)\b/g,t('members'));
+    return`<div class="mbadge ${cls}" data-id="${id}" data-ok="${r.ok?1:0}" onclick="toggleSource('${id}')" title="${r.ok?t('src_click_hint'):t('src_inactive_hint')}">${r.model.flag} <span>${mark}</span> ${lbl}</div>`;
   }).join('');
   el('ok-cnt').textContent=usedCount+t('used_of')+okCount+t(' active');
   updateToggleBtns();
@@ -2693,6 +2773,7 @@ let isFirst=true,_cd=null,_rv=null,_hourlyData=[];
 let _bestMode=true;
 let selectedSources=new Set(bestIdsFor(LAT,LON)); // implicit la pornire: Best pentru locația curentă
 let _lastResults=null;
+let _lastValid=null;   // rezultatele valide (pentru re-randare badge-uri la schimbare limbă)
 
 async function loadWeather(){
   const first=isFirst;isFirst=false;
@@ -2757,11 +2838,11 @@ function applyResults(results){
 
   // ora reprezentativă
   const cur=hours.find(h=>h.isNow)||dayHours(hours,dkNow())[0]||null;
-  if(cur)cur.label='acum';
+  if(cur)cur.label=t('time_now');
   const tmDay=dayHours(hours,dkTomr());
   const hN=hNow();
   const refMaine=tmDay.find(h=>h.h===hN)||tmDay.find(h=>h.h===14)||tmDay[0]||null;
-  if(refMaine)refMaine.label='la '+fH(refMaine.h);
+  if(refMaine)refMaine.label=t('time_at')+fH(refMaine.h);
 
   renderDayCard('body-azi',dkNow(),hours,cur);
   renderDayCard('body-maine',dkTomr(),hours,refMaine);
@@ -2773,7 +2854,7 @@ function applyResults(results){
   fetchOfficialWarnings();       // reîmprospătează din Meteoalarm (asincron, nu blochează randarea)
 
   const now=new Date();
-  el('upd').textContent='actualizat '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+  el('upd').textContent=t('updated_at')+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
   // status auto-învățare
   const ls=learnStats();const lse=el('learn-status');
   if(lse){
@@ -2786,12 +2867,12 @@ function applyResults(results){
   const er=valid.find(r=>r.elevation!=null);
   _resolvedElev=er?er.elevation:null;
   const elevTxt=_resolvedElev!=null
-    ? ` · ⛰ ${Math.round(_resolvedElev)} m${ELEV_OVERRIDE!=null?' (fixat)':' (auto DEM)'}` : '';
+    ? ` · ⛰ ${Math.round(_resolvedElev)} m${ELEV_OVERRIDE!=null?' ('+t('elev_fixed')+')':' ('+t('elev_auto')+')'}` : '';
   // În mod auto (locații altele decât Daneti/Craiova), arată altitudinea reală a locației în câmp, nu „auto"
   if(ELEV_OVERRIDE==null&&_resolvedElev!=null){
     const ei=el('thr-elev');if(ei&&document.activeElement!==ei)ei.value=String(Math.round(_resolvedElev));
   }
-  el('coord').textContent=`${LAT.toFixed(3)}°N · ${LON.toFixed(3)}°E · ${valid.length} surse folosite${elevTxt}`;
+  el('coord').textContent=`${LAT.toFixed(3)}°N · ${LON.toFixed(3)}°E · ${valid.length} ${t('sources_used')}${elevTxt}`;
   updateLocnameDisplay();   // reactualizează cu altitudinea venită din API
   const ensActive=valid.some(r=>r.model.ensemble);
   const th=el('thr-note');
@@ -3063,7 +3144,7 @@ function restoreLastLoc(){
       if(typeof T.P_HIGH ==='number')P_HIGH =T.P_HIGH;
     }
     // Migrare unică: vechiul prag implicit de ploaie (1 l/mp) ⇒ noul implicit (4 l/mp)
-    if(RAIN_MIN===1||RAIN_MIN===1.0){RAIN_MIN=4.0;migrated=true;}
+    // RAIN_MIN=1.0 este noul default — nu mai e nevoie de migrare
     let locOk=false;
     if(o.loc&&typeof o.loc.lat==='number'&&typeof o.loc.lon==='number'){
       LAT=o.loc.lat;LON=o.loc.lon;TZ=o.loc.tz||TZ;LOC_NAME=o.loc.name||LOC_NAME;
