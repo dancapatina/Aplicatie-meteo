@@ -47,8 +47,8 @@ body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
 .line.frost{color:#7dd3fc;font-weight:700}
 .sep{color:#4a6070}
 
-#strip{display:flex;gap:3px;flex-shrink:0}
-#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:7px;padding:5px 2px}
+#strip{display:flex;gap:5px;flex-shrink:0}
+#strip .d{flex:1;text-align:center;min-width:0;background:rgba(255,255,255,.05);border-radius:7px;padding:5px 3px}
 #strip .dname{font-size:clamp(.72rem,2.2vw,.92rem);color:#9fb3c8;font-weight:700}
 #strip .dico{font-size:clamp(1.1rem,4.5vw,1.6rem);line-height:1.2;margin:2px 0}
 #strip .dmax{font-size:clamp(.8rem,3vw,1.05rem);font-weight:800;color:#fbbf24}
@@ -994,10 +994,10 @@ function render(hours){
     const rainTxt=s&&s.totP!=null?(Math.round(s.totP*10)/10).toFixed(1).replace('.',','):'—';
     const windTxt=s&&s.wmax!=null?Math.round(s.wmax):'—';
     const arrow=s?windArrow(s.predDir):'';
-    const dewTxt=s&&s.dpAvg!=null?s.dpAvg+'°C':'—';
+    const dewTxt=s&&s.dpAvg!=null?s.dpAvg+'°':'—';
     return `<div class="d"><div class="dname">${nm}</div><div class="dico">${ic}</div>`+
-      `<div class="dmax">${s&&s.tmax!=null?s.tmax+'°C':'—'}</div>`+
-      `<div class="dmin">${s&&s.tmin!=null?s.tmin+'°C':'—'}</div>`+
+      `<div class="dmax">${s&&s.tmax!=null?s.tmax+'°':'—'}</div>`+
+      `<div class="dmin">${s&&s.tmin!=null?s.tmin+'°':'—'}</div>`+
       `<div class="ddet">`+
         `<div class="drain">💧 ${rainTxt!=='—'?rainTxt+' l/mp':'—'}</div>`+
         `<div class="dwind">💨 ${windTxt!=='—'?windTxt+' km/h '+arrow:arrow||'—'}</div>`+
