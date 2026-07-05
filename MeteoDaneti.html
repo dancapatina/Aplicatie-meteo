@@ -90,8 +90,8 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 /* 7-day table */
 .sec{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:10px}
 .sec-title{font-weight:800;font-size:1.02rem;margin-bottom:9px}
-.wk{width:100%;border-collapse:collapse;font-size:1.04rem;table-layout:fixed}
-.wk th,.wk td{padding:7px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05)}
+.wk{min-width:100%;border-collapse:separate;border-spacing:0;font-size:1.04rem;table-layout:auto}
+.wk th,.wk td{padding:7px 7px;text-align:center;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
 .wk thead th{background:rgba(255,255,255,.07);font-size:.82rem;color:#cdd9e6;font-weight:800;border-radius:4px}
 .wk thead th.today{background:rgba(37,99,235,.28);color:#fff}
 .wk .rowlbl{text-align:left;color:#9fb3c8;font-size:.74rem;font-weight:700;white-space:normal;width:56px;line-height:1.2;padding-left:2px}
@@ -2627,11 +2627,11 @@ function renderWeek(hours){
   const tdCls=dk=>dk===dk0?' class="today wk-day" ':' class="wk-day" ';
   const onc=dk=>`onclick="gotoHourlyDay('${dk}')"`;
   const rowTemp=days.map((dk,i)=>{const s=stats[i];return `<td${tdCls(dk)}${onc(dk)}>${s&&s.tmin!=null
-    ?`<span class="v-temp big">${s.tmax}°C</span><br><span class="big" style="color:#7dd3fc">${s.tmin}°C</span>`:'—'}</td>`;}).join('');
+    ?`<span class="v-temp big">${s.tmax}°</span><br><span class="big" style="color:#7dd3fc">${s.tmin}°</span>`:'—'}</td>`;}).join('');
   const rowRain=days.map((dk,i)=>{const s=stats[i];return `<td${tdCls(dk)}${onc(dk)}><span class="v-rain big">${s?s.totP:0}</span> <span class="unit">l/m²</span></td>`;}).join('');
   const rowWind=days.map((dk,i)=>{const s=stats[i];return `<td${tdCls(dk)}${onc(dk)}>${s&&s.wmax!=null
     ?`<span class="v-wind big">${s.wmax}</span> <span class="unit">km/h</span><br><span class="arrow v-wind">${windArrow(s.predDir)}</span> <span class="dir">${windCard(s.predDir)}</span>`:'—'}</td>`;}).join('');
-  const rowDew=days.map((dk,i)=>{const s=stats[i];return `<td${tdCls(dk)}${onc(dk)}><span class="v-dew big">${s&&s.dpAvg!=null?s.dpAvg+'°C':'—'}</span></td>`;}).join('');
+  const rowDew=days.map((dk,i)=>{const s=stats[i];return `<td${tdCls(dk)}${onc(dk)}><span class="v-dew big">${s&&s.dpAvg!=null?s.dpAvg+'°':'—'}</span></td>`;}).join('');
 
   el('wk-body').innerHTML=`
   <div style="overflow-x:auto"><table class="wk">
