@@ -296,6 +296,9 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .now15-p.heavyrain{color:#f87171;font-size:clamp(.74rem,3.3vw,.88rem)}
 /* Temperatura — galben, sub precipitații */
 .now15-temp-val{font-size:clamp(.68rem,3vw,.8rem);color:#fbbf24;font-weight:700;margin-top:2px}
+/* Fiabilitate per zi (apare când autoinvățarea are suficiente date) */
+.nw-drel{display:flex;gap:8px;margin-top:4px;padding-top:4px;
+  border-top:1px solid rgba(255,255,255,.06);font-size:clamp(.6rem,2.3vw,.7rem);font-weight:700}
 /* Buton Încă 7 zile */
 .nw-more7-btn{display:block;width:100%;padding:9px;margin-top:2px;
   background:rgba(37,99,235,.12);border:1px solid rgba(59,130,246,.3);
@@ -406,7 +409,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   </div>
 </div>
 
-<div id="ban-bg"   class="ban info" style="display:none">🔄 Actualizare automată...</div>
+<div id="ban-bg" class="ban info" style="display:none" data-i18n="updating">🔄 Actualizare automată...</div>
 <div id="ban-cors" class="ban cors" style="display:none">
   ⚠️ <b>CORS blocat</b> — deschideți cu <b>Firefox/Comet</b> sau:
   <code>python -m http.server 8080</code>
@@ -2241,7 +2244,7 @@ const I18N={
     src_inactive_hint:'sursă inactivă (fără date la locație)',
     src_description:'12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 modele ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) pentru azi+mâine · probabilitatea de ploaie/vânt vine din membrii ensemble · butonul ⭐ Best alege automat un set optimizat statistic per locație · actualizare automată din 15 în 15 minute',
     ow_areas:'Zone vizate',ow_interval:'Interval',ow_from:'de la',ow_until:'până la',
-    ow_no_detail:'(fără detalii disponibile — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',unit_lmp:'l/mp',alert_wind:'Vânt',alert_rain:'Ploaie',alert_between:'între',altitude:'Alt.',now15_title:'Acum · 15 min',now15_rain_soon:'Ploaie în curând',now15_heavy_rain:'Ploaie intensă iminentă',now15_no_rain:'Fără precipitații',nowcast_src:'nowcasting real-time',},
+    ow_no_detail:'(fără detalii disponibile — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',unit_lmp:'l/mp',alert_wind:'Vânt',alert_rain:'Ploaie',alert_between:'între',altitude:'Alt.',now15_title:'Acum · 15 min',now15_rain_soon:'Ploaie în curând',now15_heavy_rain:'Ploaie intensă iminentă',now15_no_rain:'Fără precipitații',nowcast_src:'nowcasting real-time',rain_soon_p:'Ploaie în curând',rain_imm_p:'Ploaie iminentă',rain_hvy_soon_p:'Ploaie intensă în curând',rain_hvy_imm_p:'Ploaie intensă iminentă',wind_soon_p:'Vânt în curând',wind_imm_p:'Vânt iminent',wind_str_soon_p:'Vânt puternic în curând',wind_str_imm_p:'Vânt puternic iminent'},
   en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
@@ -2336,7 +2339,7 @@ const I18N={
     src_inactive_hint:'inactive source (no data for location)',
     src_description:'12 deterministic models (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE models 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) for today+tomorrow · rain/wind probability from ensemble members · ⭐ Best auto-selects a statistically optimized set per location · auto-refresh every 15 minutes',
     ow_areas:'Areas affected',ow_interval:'Period',ow_from:'from',ow_until:'until',
-    ow_no_detail:'(no details available — check meteoromania.ro)',ow_translating:'⏳ Translating…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Rain',alert_between:'between',altitude:'Alt.',now15_title:'Now · 15 min',now15_rain_soon:'Rain soon',now15_heavy_rain:'Heavy rain imminent',now15_no_rain:'No precipitation',nowcast_src:'real-time nowcast',},
+    ow_no_detail:'(no details available — check meteoromania.ro)',ow_translating:'⏳ Translating…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Rain',alert_between:'between',altitude:'Alt.',now15_title:'Now · 15 min',now15_rain_soon:'Rain soon',now15_heavy_rain:'Heavy rain imminent',now15_no_rain:'No precipitation',nowcast_src:'real-time nowcast',rain_soon_p:'Rain soon',rain_imm_p:'Rain imminent',rain_hvy_soon_p:'Heavy rain soon',rain_hvy_imm_p:'Heavy rain imminent',wind_soon_p:'Wind soon',wind_imm_p:'Wind imminent',wind_str_soon_p:'Strong wind soon',wind_str_imm_p:'Strong wind imminent'},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -2431,7 +2434,7 @@ const I18N={
     src_inactive_hint:'source inactive (pas de données pour ce lieu)',
     src_description:"12 modèles déterministes (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modèles ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pluie/vent depuis l'ensemble · ⭐ Best sélectionne automatiquement un ensemble optimisé · actualisation auto toutes les 15 minutes",
     ow_areas:'Zones concernées',ow_interval:'Période',ow_from:'de',ow_until:"jusqu'à",
-    ow_no_detail:'(aucun détail disponible — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',unit_lmp:'l/m²',alert_wind:'Vent',alert_rain:'Pluie',alert_between:'entre',altitude:'Alt.',now15_title:'Maintenant · 15 min',now15_rain_soon:'Pluie bientôt',now15_heavy_rain:'Forte pluie imminente',now15_no_rain:'Pas de précipitations',nowcast_src:'nowcasting temps réel',},
+    ow_no_detail:'(aucun détail disponible — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',unit_lmp:'l/m²',alert_wind:'Vent',alert_rain:'Pluie',alert_between:'entre',altitude:'Alt.',now15_title:'Maintenant · 15 min',now15_rain_soon:'Pluie bientôt',now15_heavy_rain:'Forte pluie imminente',now15_no_rain:'Pas de précipitations',nowcast_src:'nowcasting temps réel',rain_soon_p:'Pluie bientôt',rain_imm_p:'Pluie imminente',rain_hvy_soon_p:'Forte pluie bientôt',rain_hvy_imm_p:'Forte pluie imminente',wind_soon_p:'Vent bientôt',wind_imm_p:'Vent imminent',wind_str_soon_p:'Vent fort bientôt',wind_str_imm_p:'Vent fort imminent'},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -2526,7 +2529,7 @@ const I18N={
     src_inactive_hint:'fuente inactiva (sin datos para esta ubicación)',
     src_description:'12 modelos deterministas (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelos ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. lluvia/viento desde ensemble · ⭐ Best selecciona automáticamente un conjunto optimizado · actualización automática cada 15 minutos',
     ow_areas:'Zonas afectadas',ow_interval:'Período',ow_from:'desde',ow_until:'hasta',
-    ow_no_detail:'(sin detalles disponibles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',unit_lmp:'l/m²',alert_wind:'Viento',alert_rain:'Lluvia',alert_between:'entre',altitude:'Alt.',},
+    ow_no_detail:'(sin detalles disponibles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',unit_lmp:'l/m²',alert_wind:'Viento',alert_rain:'Lluvia',alert_between:'entre',altitude:'Alt.',now15_title:'Ahora · 15 min',now15_rain_soon:'Lluvia pronto',now15_heavy_rain:'Lluvia intensa inminente',now15_no_rain:'Sin precipitaciones',nowcast_src:'nowcasting en tiempo real',rain_soon_p:'Lluvia pronto',rain_imm_p:'Lluvia inminente',rain_hvy_soon_p:'Lluvia fuerte pronto',rain_hvy_imm_p:'Lluvia fuerte inminente',wind_soon_p:'Viento pronto',wind_imm_p:'Viento inminente',wind_str_soon_p:'Viento fuerte pronto',wind_str_imm_p:'Viento fuerte inminente'},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2621,7 +2624,7 @@ const I18N={
     src_inactive_hint:'inaktive Quelle (keine Daten für diesen Ort)',
     src_description:'12 deterministische Modelle (inkl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE-Modelle 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · Regen/Wind-Wahrscheinlichkeit aus Ensemble · ⭐ Best wählt automatisch ein statistisch optimiertes Set · Auto-Aktualisierung alle 15 Minuten',
     ow_areas:'Betroffene Gebiete',ow_interval:'Zeitraum',ow_from:'von',ow_until:'bis',
-    ow_no_detail:'(keine Details verfügbar — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Regen',alert_between:'zwischen',altitude:'Alt.',now15_title:'Jetzt · 15 min',now15_rain_soon:'Regen bald',now15_heavy_rain:'Starkregen unmittelbar',now15_no_rain:'Kein Niederschlag',nowcast_src:'Echtzeit-Nowcasting',},
+    ow_no_detail:'(keine Details verfügbar — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Regen',alert_between:'zwischen',altitude:'Alt.',now15_title:'Jetzt · 15 min',now15_rain_soon:'Regen bald',now15_heavy_rain:'Starkregen unmittelbar',now15_no_rain:'Kein Niederschlag',nowcast_src:'Echtzeit-Nowcasting',rain_soon_p:'Regen bald',rain_imm_p:'Regen unmittelbar',rain_hvy_soon_p:'Starkregen bald',rain_hvy_imm_p:'Starkregen unmittelbar',wind_soon_p:'Wind bald',wind_imm_p:'Wind unmittelbar',wind_str_soon_p:'Starkwind bald',wind_str_imm_p:'Starkwind unmittelbar'},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2716,7 +2719,7 @@ const I18N={
     src_inactive_hint:'sorgente inattiva (nessun dato per questa posizione)',
     src_description:'12 modelli deterministici (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelli ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pioggia/vento dall\'ensemble · ⭐ Best seleziona automaticamente un set ottimizzato · aggiornamento automatico ogni 15 minuti',
     ow_areas:'Zone interessate',ow_interval:'Periodo',ow_from:'dalle',ow_until:'alle',
-    ow_no_detail:'(nessun dettaglio disponibile — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',unit_lmp:'l/m²',alert_wind:'Vento',alert_rain:'Pioggia',alert_between:'tra',altitude:'Alt.',now15_title:'Adesso · 15 min',now15_rain_soon:'Pioggia presto',now15_heavy_rain:'Pioggia intensa imminente',now15_no_rain:'Nessuna precipitazione',nowcast_src:'nowcasting in tempo reale',},
+    ow_no_detail:'(nessun dettaglio disponibile — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',unit_lmp:'l/m²',alert_wind:'Vento',alert_rain:'Pioggia',alert_between:'tra',altitude:'Alt.',now15_title:'Adesso · 15 min',now15_rain_soon:'Pioggia presto',now15_heavy_rain:'Pioggia intensa imminente',now15_no_rain:'Nessuna precipitazione',nowcast_src:'nowcasting in tempo reale',rain_soon_p:'Pioggia presto',rain_imm_p:'Pioggia imminente',rain_hvy_soon_p:'Pioggia intensa presto',rain_hvy_imm_p:'Pioggia intensa imminente',wind_soon_p:'Vento presto',wind_imm_p:'Vento imminente',wind_str_soon_p:'Vento forte presto',wind_str_imm_p:'Vento forte imminente'},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2799,6 +2802,8 @@ function applyLang(){
   // Actualizează textul butonului Încă 7 zile
   const b7=el('btn-more7');
   if(b7)b7.textContent=_more7Visible&&typeof _more7Visible!=='undefined'?('▲ '+t('more_7_days')):t('more_7_days');
+  // Re-renderează strip nowcasting 15 min cu noua limbă
+  if(typeof _last15Data!=='undefined'&&_last15Data)renderNow15Strip(_last15Data);
 }
 function setLang(code){
   if(!I18N[code])return;
@@ -2936,23 +2941,27 @@ function renderNWDays(hours){
   const dl=el('nw-days'); if(!dl)return;
   const days=next7days(), dk0=dkNow();
   const zile=getZileScurt(), luni=getLuniS();
+  const ls=typeof learnStats==='function'?learnStats():null;
+  const getRelStr=(dk)=>{
+    if(!ls||!ls.rel)return'';
+    const r=ls.rel[horizonDays(dk)];if(!r||(r.n||0)<5)return'';
+    const col=v=>v>=0.96?'#6ee7b7':v>=0.93?'#a5b4fc':v>=0.88?'#fbbf24':'#fb7185';
+    const p=(v,ico)=>v!=null?`<span style="color:${col(v)}">${ico}${Math.round(v*100)}%</span>`:'';
+    return `<div class="nw-drel">${p(r.t,'🌡')} ${p(r.p,'🌧')} ${p(r.w,'💨')}</div>`;
+  };
   dl.innerHTML=days.map(dk=>{
     const s=dayStats(hours,dk);
     const dh=dayHours(hours,dk);
     if(!dh.length)return'';
-    // Iconițe zi / noapte
     const dH=dh.find(h=>h.h===12)||dh.find(h=>h.h===14)||dh[Math.floor(dh.length/2)];
     const nH=dh.find(h=>h.h===22)||dh.find(h=>h.h===20)||dh[dh.length-1];
     const dayIco=condIcon(dH).i, nightIco=condIcon(nH).i;
-    // Max probabilitate ploaie
     const maxP=dh.length?Math.max(...dh.map(h=>h.rainProb||0)):0;
-    // Wind range
     const winds=dh.map(h=>h.wMean).filter(v=>v!=null);
     const wMin=winds.length?Math.round(Math.min(...winds)):0;
     const wMax=s?.wmax||0;
     const wRange=wMin<wMax?`${wMin}-${wMax}`:`${wMax}`;
     const wAr=windArrow(s?.predDir)||'';
-    // Data
     const name=zile[dow(dk)];
     const dateStr=`${dDay(dk)}.${String(dMon(dk)).padStart(2,'0')}`;
     const isToday=dk===dk0;
@@ -2979,6 +2988,7 @@ function renderNWDays(hours){
         <span>💧 <span class="nw-dv">${s?.totP!=null?s.totP+' l':'—'}</span></span>
         ${s?.dpAvg!=null?`<span>🌫 <span class="nw-dv">${s.dpAvg}°</span></span>`:''}
       </div>
+      ${getRelStr(dk)}
     </div>`;
   }).join('');
 }
@@ -2995,8 +3005,16 @@ function next14days(){
 
 function renderNWDays2(hours){
   const dl=el('nw-days2');if(!dl)return;
-  const days=next14days().slice(7);   // zilele 8-14
+  const days=next14days().slice(7);
   const dk0=dkNow();const zile=getZileScurt();
+  const ls=typeof learnStats==='function'?learnStats():null;
+  const getRelStr=(dk)=>{
+    if(!ls||!ls.rel)return'';
+    const r=ls.rel[horizonDays(dk)];if(!r||(r.n||0)<5)return'';
+    const col=v=>v>=0.96?'#6ee7b7':v>=0.93?'#a5b4fc':v>=0.88?'#fbbf24':'#fb7185';
+    const p=(v,ico)=>v!=null?`<span style="color:${col(v)}">${ico}${Math.round(v*100)}%</span>`:'';
+    return `<div class="nw-drel">${p(r.t,'🌡')} ${p(r.p,'🌧')} ${p(r.w,'💨')}</div>`;
+  };
   dl.innerHTML=days.map(dk=>{
     const s=dayStats(hours,dk);const dh=dayHours(hours,dk);
     if(!dh.length)return'';
@@ -3028,9 +3046,11 @@ function renderNWDays2(hours){
         <span>💧 <span class="nw-dv">${s?.totP!=null?s.totP+' l':'—'}</span></span>
         ${s?.dpAvg!=null?`<span>🌫 <span class="nw-dv">${s.dpAvg}°</span></span>`:''}
       </div>
+      ${getRelStr(dk)}
     </div>`;
   }).join('');
 }
+
 
 function toggleMore7Days(){
   _more7Visible=!_more7Visible;
@@ -3571,30 +3591,21 @@ function checkNotifications(hours){
 }
 
 function requestNotif(){
-  if(!('Notification'in window)){
-    el('notif-status').textContent=t('notif_unsupported');return;
-  }
+  if(!('Notification'in window))return;
   if(Notification.permission==='granted'){
-    el('notif-status').textContent=t('notif_active');
+    // Permisiune deja acordată — colorăm butonul, fără text în UI
     el('btn-notif').style.background='#065f46';return;
   }
   Notification.requestPermission().then(p=>{
-    if(p==='granted'){
-      el('notif-status').textContent=t('notif_activated');
-      el('btn-notif').style.background='#065f46';
-    } else {
-      el('notif-status').textContent=t('notif_denied');
-    }
+    if(p==='granted')el('btn-notif').style.background='#065f46';
+    // Nu afișăm niciun text de status în interfață
   });
 }
 
 function initNotifStatus(){
   if(!('Notification'in window))return;
-  if(Notification.permission==='granted'){
-    el('notif-status').textContent=t('notif_active');
-  } else if(Notification.permission==='denied'){
-    el('notif-status').textContent=t('notif_blocked');
-  }
+  if(Notification.permission==='granted')el('btn-notif').style.background='#065f46';
+  // Nicio etichetă de status afișată — interfața rămâne curată
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3835,6 +3846,7 @@ function applyDynamicBg(){
 // ═══════════════════════════════════════════════════════════════════
 let _now15Timer=null;
 let _nowcastOverride=null;   // date nowcast curente pt override sumar
+let _last15Data=null;        // date salvate pt re-render la schimbare limbă
 
 async function fetchNowcast15(){
   try{
@@ -3848,7 +3860,8 @@ async function fetchNowcast15(){
     const r=await fetch('https://api.open-meteo.com/v1/forecast?'+p,{signal:ctrl.signal,cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
-    renderNow15Strip(d.minutely_15);
+    _last15Data=d.minutely_15;
+    renderNow15Strip(_last15Data);
   }catch(e){}
 }
 
@@ -3864,22 +3877,47 @@ function renderNow15Strip(m15){
   })).filter(it=>it.ts>=now-900000);
   if(!items.length){bar.style.display='none';return;}
 
+  const currentItem=items[0]||null;
+  const curPrecip=currentItem?.precip??0;
+  const soon15Precip=(items[1]?.precip??0);
+  const soon30Precip=Math.max(...items.slice(0,3).map(it=>it.precip));
   const next30=items.filter(it=>it.ts<=now+1800000);
   const rainSoon=next30.some(it=>it.precip>0.1||it.prob>40);
   const heavySoon=next30.some(it=>it.precip>1||it.prob>70);
   const maxP=next30.reduce((m,it)=>Math.max(m,it.precip),0);
   const maxProb=next30.reduce((m,it)=>Math.max(m,it.prob),0);
-  const currentItem=items[0]||null;
 
-  // Salvează datele pt override sumar + actualizează sumarul imediat
-  _nowcastOverride={rainSoon,heavySoon,maxPrecip:maxP,maxProb,currentPrecip:currentItem?.precip??0,currentTemp:currentItem?.temp??null};
+  // Salvează datele pt override sumar
+  _nowcastOverride={rainSoon,heavySoon,maxPrecip:maxP,maxProb,currentPrecip:curPrecip,currentTemp:currentItem?.temp??null};
   updateSummaryWithNowcast();
 
-  const hdrWarn=heavySoon
-    ?`<span class="now15-rain-warn">⚠️ ${t('now15_heavy_rain')}</span>`
-    :rainSoon
-    ?`<span class="now15-rain-warn" style="color:#fbbf24">🌦 ${t('now15_rain_soon')}</span>`
-    :`<span style="color:#22c55e">✓ ${t('now15_no_rain')}</span>`;
+  // ── VÂNT din datele orare (acum + ora următoare) ──
+  const _now15Hours=typeof _lastHoursRef!=='undefined'&&_lastHoursRef?_lastHoursRef:[];
+  const curHourWind=(_now15Hours.find(h=>h.isNow)||{}).wMean??0;
+  const nextHourWind=(_now15Hours.find(h=>{const hn=_now15Hours.find(h2=>h2.isNow);return hn&&h.dk===hn.dk&&h.h===hn.h+1;})||{}).wMean??0;
+  const W_STRONG=30;   // prag vânt puternic km/h
+  const W_MIN=typeof WIND_MIN!=='undefined'?WIND_MIN:8;
+
+  // ── Determine mesaj ploaie (1 din 4) — cel mai relevant acum ──
+  let rainMsg='';
+  const fmtP=v=>(Math.round(v*10)/10).toFixed(1).replace('.',',')+' '+t('unit_lmp');
+  if(curPrecip>1){rainMsg=`🌧 <b>${t('rain_hvy_imm_p')} ${fmtP(curPrecip)}</b>`;}
+  else if(soon15Precip>1||soon30Precip>1){rainMsg=`🌧 <b>${t('rain_hvy_soon_p')} ${fmtP(Math.max(soon15Precip,soon30Precip))}</b>`;}
+  else if(curPrecip>0.1){rainMsg=`🌧 <b>${t('rain_imm_p')} ${fmtP(curPrecip)}</b>`;}
+  else if(soon30Precip>0.1){rainMsg=`🌧 <b>${t('rain_soon_p')} ${fmtP(soon30Precip)}</b>`;}
+
+  // ── Determine mesaj vânt (1 din 4) — cel mai relevant acum ──
+  let windMsg='';
+  if(curHourWind>W_STRONG){windMsg=`💨 <b>${t('wind_str_imm_p')} ${Math.round(curHourWind)} km/h</b>`;}
+  else if(nextHourWind>W_STRONG){windMsg=`💨 <b>${t('wind_str_soon_p')} ${Math.round(nextHourWind)} km/h</b>`;}
+  else if(curHourWind>W_MIN){windMsg=`💨 <b>${t('wind_imm_p')} ${Math.round(curHourWind)} km/h</b>`;}
+  else if(nextHourWind>W_MIN){windMsg=`💨 <b>${t('wind_soon_p')} ${Math.round(nextHourWind)} km/h</b>`;}
+
+  // ── Header: Acum + mesaje condiționale ──
+  const hdrParts=[`<span style="font-weight:800;color:#e2e8f0">⚡ ${t('time_now')}</span>`];
+  if(rainMsg)hdrParts.push(`<span style="color:#38bdf8">${rainMsg}</span>`);
+  if(windMsg)hdrParts.push(`<span style="color:#fbbf24">${windMsg}</span>`);
+  const hdrHtml=hdrParts.join(' ');
 
   const cells=items.slice(0,16).map((it,i)=>{
     const isNow=i===0;
@@ -3897,7 +3935,7 @@ function renderNow15Strip(m15){
   }).join('');
 
   bar.style.display='block';
-  bar.innerHTML=`<div class="now15-hdr"><span style="font-weight:800">⚡ ${t('now15_title')}</span>${hdrWarn}</div>`+
+  bar.innerHTML=`<div class="now15-hdr">${hdrHtml}</div>`+
     `<div class="now15-strip">${cells}</div>`;
 }
 
@@ -3974,7 +4012,16 @@ restoreRefreshInterval();
 loadWeather();
 _rv=setInterval(loadWeather,REFRESH_MS);
 initNotifStatus();
-startNow15();   // nowcasting 15 min — pornit independent de refresh-ul principal
+startNow15();
+// Auto-request permisiuni silențios (fără text de status în UI)
+// Notificări: dacă nu au fost acordate/refuzate, solicităm permisiunea
+if('Notification'in window&&Notification.permission==='default'){
+  Notification.requestPermission().then(p=>{if(p==='granted')el('btn-notif').style.background='#065f46';});
+}
+// Locație curentă: solicităm permisiunea silențios (folosit de btn-gps la click)
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(()=>{},()=>{},{timeout:3000,maximumAge:60000});
+}
 
 // Înregistrare service worker (necesar pentru instalabilitate completă pe Android/Chrome;
 // pe iPhone funcționează oricum prin meta-tagurile apple-mobile-web-app de mai sus)
