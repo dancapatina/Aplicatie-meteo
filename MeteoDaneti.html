@@ -256,10 +256,10 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   -webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;gap:3px}
 .nc-lb:hover,.nc-lb:active{background:rgba(255,255,255,.18)}
 .nc-lb.active{background:rgba(37,99,235,.3);border-color:rgba(59,130,246,.5);color:#7dd3fc}
-.nc-bottom{display:flex;gap:5px;flex-wrap:wrap;padding-top:6px;
-  border-top:1px solid rgba(255,255,255,.09)}
-.nc-side-ctrl{display:none}
+.nc-bottom{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px;
+  align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,.09)}
 .nc-col{display:flex;flex-direction:column;gap:5px}
+.nc-side-ctrl{display:none}
 .nc-sel-wrap{position:relative;width:34px;height:34px;display:flex;align-items:center;
   justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
   border-radius:9px;cursor:pointer;overflow:hidden;
@@ -268,28 +268,34 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nc-sel-wrap select{position:absolute;inset:0;opacity:0;cursor:pointer;
   width:100%;height:100%;font-size:16px;margin:0;padding:0}
 .nc-sel-ico{font-size:.9rem;pointer-events:none;z-index:1}
-.nc-learn-mini,.nc-notif-mini{font-size:.55rem;color:#94a3b8;text-align:center;
-  max-width:34px;line-height:1.3;word-break:break-all;padding:0 2px}
-/* Nowcasting strip 15 minute */
+.nc-learn-mini,.nc-notif-mini{font-size:.55rem;color:#94a3b8;line-height:1.3;
+  max-width:80px;word-break:break-all;padding:0 2px}
+/* ── Nowcasting strip 15 min — culori vii, vizibile pe mobil ── */
 #now15-bar{border-radius:12px;padding:8px 10px;margin-bottom:8px;
-  background:rgba(10,20,36,.55);border:1px solid rgba(255,255,255,.09);
+  background:rgba(10,20,36,.7);border:1px solid rgba(255,255,255,.14);
   backdrop-filter:blur(6px)}
 .now15-hdr{display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:6px;font-size:.72rem;font-weight:700;color:#94a3b8}
-.now15-hdr .now15-rain-warn{color:#f87171;font-weight:800;animation:now15pulse 1.5s ease-in-out infinite}
-@keyframes now15pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.now15-strip{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  margin-bottom:6px;font-size:.8rem;font-weight:800;color:#e2e8f0}
+.now15-hdr .now15-rain-warn{color:#f87171;font-weight:900;animation:now15pulse 1.5s ease-in-out infinite}
+@keyframes now15pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.now15-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .now15-strip::-webkit-scrollbar{display:none}
-.now15-cell{flex:0 0 auto;width:clamp(42px,13vw,56px);text-align:center;
-  border-radius:8px;padding:5px 3px;border:1px solid rgba(255,255,255,.07);
-  background:rgba(255,255,255,.05);font-size:clamp(.6rem,2.5vw,.72rem)}
-.now15-cell.now15-now{background:rgba(37,99,235,.2);border-color:rgba(59,130,246,.5)}
-.now15-cell.now15-rain{background:rgba(59,130,246,.15);border-color:rgba(96,165,250,.4)}
-.now15-cell.now15-heavyrain{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}
-.now15-t{font-size:clamp(.58rem,2.2vw,.68rem);color:#94a3b8;margin-bottom:2px}
-.now15-ico{font-size:clamp(.9rem,3.8vw,1.1rem);line-height:1.2;margin:2px 0}
-.now15-p{font-size:clamp(.62rem,2.5vw,.74rem);font-weight:700;color:#38bdf8}
-.now15-p.rain{color:#60a5fa}.now15-p.heavyrain{color:#f87171}
+.now15-cell{flex:0 0 auto;width:clamp(50px,15vw,64px);text-align:center;
+  border-radius:10px;padding:7px 3px;border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07)}
+.now15-cell.now15-now{background:rgba(37,99,235,.28);border-color:rgba(59,130,246,.65)}
+.now15-cell.now15-rain{background:rgba(59,130,246,.2);border-color:rgba(96,165,250,.55)}
+.now15-cell.now15-heavyrain{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.6)}
+/* Ora — albă, boldă, vizibilă */
+.now15-t{font-size:clamp(.72rem,3.2vw,.86rem);color:#fff;font-weight:900;margin-bottom:3px}
+/* Iconița */
+.now15-ico{font-size:clamp(1.05rem,4.8vw,1.35rem);line-height:1.2;margin:2px 0}
+/* Valoare precipitații — albastru viu / roșu */
+.now15-p{font-size:clamp(.72rem,3.2vw,.86rem);font-weight:800;color:#38bdf8}
+.now15-p.rain{color:#60a5fa;font-size:clamp(.74rem,3.3vw,.88rem)}
+.now15-p.heavyrain{color:#f87171;font-size:clamp(.74rem,3.3vw,.88rem)}
+/* Temperatura — galben, sub precipitații */
+.now15-temp-val{font-size:clamp(.68rem,3vw,.8rem);color:#fbbf24;font-weight:700;margin-top:2px}
 /* Buton Încă 7 zile */
 .nw-more7-btn{display:block;width:100%;padding:9px;margin-top:2px;
   background:rgba(37,99,235,.12);border:1px solid rgba(59,130,246,.3);
@@ -373,34 +379,30 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
       <div id="loc-res" class="loc-res" style="display:none"></div>
     </div>
   </div>
-  <!-- Rând 3: 2 coloane controale (sub header) -->
+  <!-- Rând 3: UN singur rând cu toate 6 controale -->
   <div class="nc-bottom">
-    <div class="nc-col">
-      <button class="nc-abtn nc-abtn-ref"   onclick="forceLoad()"       title="↺" data-i18n-title="refresh">↺</button>
-      <button class="nc-abtn nc-abtn-notif" onclick="requestNotif()"    title="🔔" data-i18n-title="notif">🔔</button>
-      <button class="nc-abtn nc-abtn-radar" onclick="openRadar('rain')" title="🛰️" data-i18n-title="radar_btn">🛰️</button>
-    </div>
-    <div class="nc-col">
-      <label class="nc-sel-wrap" data-i18n-title="refresh_at"><span class="nc-sel-ico">⏱</span>
-        <select id="refresh-sel" onchange="setRefreshInterval(this.value)">
-          <option value="15">15 min</option><option value="30">30 min</option>
-          <option value="45">45 min</option><option value="60">1 h</option>
-          <option value="75">1h15</option><option value="90">1h30</option>
-          <option value="105">1h45</option><option value="120">2 h</option>
-          <option value="135">2h15</option><option value="150">2h30</option>
-          <option value="165">2h45</option><option value="180">3 h</option>
-        </select>
-      </label>
-      <label class="nc-sel-wrap" data-i18n-title="lang_label"><span class="nc-sel-ico">🌐</span>
-        <select id="lang-sel" onchange="setLang(this.value)">
-          <option value="ro">RO</option><option value="en">EN</option>
-          <option value="fr">FR</option><option value="es">ES</option>
-          <option value="de">DE</option><option value="it">IT</option>
-        </select>
-      </label>
-      <div id="learn-status" class="nc-learn-mini"></div>
-      <div id="notif-status" class="nc-notif-mini"></div>
-    </div>
+    <button class="nc-abtn nc-abtn-ref"   onclick="forceLoad()"       title="↺" data-i18n-title="refresh">↺</button>
+    <button class="nc-abtn nc-abtn-notif" onclick="requestNotif()"    title="🔔" data-i18n-title="notif">🔔</button>
+    <button class="nc-abtn nc-abtn-radar" onclick="openRadar('rain')" title="🛰️" data-i18n-title="radar_btn">🛰️</button>
+    <label class="nc-sel-wrap" data-i18n-title="refresh_at"><span class="nc-sel-ico">⏱</span>
+      <select id="refresh-sel" onchange="setRefreshInterval(this.value)">
+        <option value="15">15 min</option><option value="30">30 min</option>
+        <option value="45">45 min</option><option value="60">1 h</option>
+        <option value="75">1h15</option><option value="90">1h30</option>
+        <option value="105">1h45</option><option value="120">2 h</option>
+        <option value="135">2h15</option><option value="150">2h30</option>
+        <option value="165">2h45</option><option value="180">3 h</option>
+      </select>
+    </label>
+    <label class="nc-sel-wrap" data-i18n-title="lang_label"><span class="nc-sel-ico">🌐</span>
+      <select id="lang-sel" onchange="setLang(this.value)">
+        <option value="ro">RO</option><option value="en">EN</option>
+        <option value="fr">FR</option><option value="es">ES</option>
+        <option value="de">DE</option><option value="it">IT</option>
+      </select>
+    </label>
+    <div id="learn-status" class="nc-learn-mini"></div>
+    <div id="notif-status" class="nc-notif-mini"></div>
   </div>
 </div>
 
@@ -3890,7 +3892,7 @@ function renderNow15Strip(m15){
       <div class="now15-t">${it.timeStr.slice(0,5)}</div>
       <div class="now15-ico">${ico}</div>
       <div class="now15-p ${pCls}">${pStr}</div>
-      ${tempStr?`<div style="font-size:.6rem;color:#94a3b8">${tempStr}</div>`:''}
+      ${tempStr?`<div class="now15-temp-val">${tempStr}</div>`:''}
     </div>`;
   }).join('');
 
