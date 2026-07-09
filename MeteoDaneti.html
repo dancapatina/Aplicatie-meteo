@@ -133,7 +133,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   border:1px solid rgba(255,255,255,.14);border-radius:13px;padding:12px 16px;margin:9px 0 4px;max-width:560px}
 .nowcast .nc-main{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:11px;color:#eaf2fb;line-height:1.15}
 .nowcast .nc-ico{font-size:2rem;line-height:1}
-.nowcast .nc-cond{font-size:1.15rem;font-weight:700;color:#cfe0f2}
+.nowcast .nc-cond{font-size:clamp(.88rem,3.5vw,1rem);font-weight:700;color:#e8f0f8;flex-wrap:wrap}
 .nowcast .nc-sub{margin-top:7px;font-size:.92rem;color:#aac1da;display:flex;gap:16px;flex-wrap:wrap}
 /* Layout nowcast: conținut stânga + butoane acțiuni dreapta (vertical, icon-only) */
 .nc-layout{display:flex;gap:8px;align-items:flex-start}
@@ -153,16 +153,16 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .ow-close-x{background:none;border:none;color:inherit;opacity:.65;cursor:pointer;font-size:1.1rem;padding:0 2px;line-height:1;font-weight:800;font-family:inherit}
 .ow-close-x:hover{opacity:1}
 /* Valori rain+wind inline în nc-cond */
-.nc-iv{font-size:.82rem;color:#aac1da;font-weight:600;white-space:nowrap}
-.nc-iv b{color:#e2e8f0}
+.nc-iv{font-size:.84rem;color:#cbd5e1;font-weight:600;white-space:nowrap}
+.nc-iv b{color:#fff}
 /* Mini-triunghiuri ▲ avertizare în sumar */
 .nc-mini-warns{display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle}
 .nc-mtri{font-size:.85rem;line-height:1;cursor:pointer;transition:transform .12s,filter .12s;
   filter:drop-shadow(0 0 3px currentColor)}
 .nc-mtri:hover{transform:scale(1.25)}
 .nc-rel-prob{margin-top:6px;padding:5px 9px;background:rgba(255,255,255,.05);border-radius:7px;font-size:.75rem;display:flex;flex-direction:column;gap:4px;border:1px solid rgba(255,255,255,.07)}
-.rp-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
-.rp-lbl{color:#5a7390;min-width:86px;font-size:.7rem}
+.rp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rp-lbl{color:#94a3b8;min-width:86px;font-size:.72rem;font-weight:600}
 .nowcast .nc-sub b{color:#fff}
 .nowcast .nc-hi{color:#fbbf24;font-weight:800}
 .nowcast .nc-rainevt{margin-top:8px;padding:7px 11px;background:rgba(56,189,248,.14);border:1px solid rgba(125,211,252,.35);
@@ -191,16 +191,16 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   padding:clamp(5px,2vw,8px) 3px;text-align:center;border:1px solid rgba(255,255,255,.07);
   cursor:default;min-width:clamp(58px,18vw,72px);flex-shrink:0;overflow:hidden}
 .nw-hcell.nw-now{background:rgba(37,99,235,.2);border-color:rgba(59,130,246,.45)}
-.nw-hh{font-size:clamp(.58rem,2.4vw,.72rem);color:#9fb3c8;font-weight:700;margin-bottom:3px}
+.nw-hh{font-size:clamp(.72rem,3.2vw,.86rem);color:#38bdf8;font-weight:800;margin-bottom:3px}
 /* Rânduri în celulă: temp, ploaie, vânt */
 .nw-hline{display:flex;justify-content:space-between;align-items:center;
   gap:2px;padding:0 2px;min-height:clamp(15px,4.5vw,18px)}
-.nw-hval{font-size:clamp(.65rem,2.8vw,.78rem);font-weight:700;white-space:nowrap;color:#e2e8f0}
-.nw-hval.t{font-size:clamp(.8rem,3.5vw,.95rem);font-weight:800;color:#f1f5f9}
-.nw-hval.r{color:#7dd3fc}
-.nw-hval.w{color:#fbbf24}
-.nw-rel{font-size:clamp(.52rem,1.9vw,.62rem);color:#475569;white-space:nowrap;
-  background:rgba(255,255,255,.05);border-radius:3px;padding:0 2px;line-height:1.4}
+.nw-hval{font-size:clamp(.74rem,3.2vw,.88rem);font-weight:700;white-space:nowrap;color:#e2e8f0}
+.nw-hval.t{font-size:clamp(.95rem,4.5vw,1.12rem);font-weight:900;color:#fff}
+.nw-hval.r{color:#38bdf8;font-weight:800}
+.nw-hval.w{color:#fcd34d;font-weight:900}
+.nw-rel{font-size:clamp(.6rem,2.2vw,.68rem);color:#64748b;white-space:nowrap;
+  background:rgba(255,255,255,.07);border-radius:3px;padding:0 3px;line-height:1.4}
 /* Header sumar: locație + altitudine + ceas */
 .nc-header-row{display:flex;justify-content:space-between;align-items:center;
   margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.09)}
@@ -210,7 +210,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nc-loc-elev{color:#fbbf24;font-size:.85em;font-weight:700;background:rgba(251,191,36,.1);
   border-radius:5px;padding:1px 5px;border:1px solid rgba(251,191,36,.25)}
 .nc-clock-big{font-size:clamp(.98rem,4.5vw,1.3rem);font-weight:800;color:#fbbf24;
-  font-variant-numeric:tabular-nums;letter-spacing:.5px;white-space:nowrap}
+  font-variant-numeric:tabular-nums;letter-spacing:.5px;white-space:nowrap;margin:0 auto}
 /* 7 zile — click → orar */
 .nw-days{display:flex;flex-direction:column;gap:clamp(4px,1.5vw,6px)}
 .nw-day{background:rgba(255,255,255,.055);border-radius:11px;
@@ -221,32 +221,45 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nw-day:hover,.nw-day:active{background:rgba(37,99,235,.15)}
 .nw-day.nw-today{background:rgba(37,99,235,.1);border-color:rgba(59,130,246,.28)}
 .nw-dtop{display:flex;align-items:center;gap:clamp(4px,1.5vw,6px)}
-.nw-dname{font-size:clamp(.74rem,3vw,.84rem);font-weight:800;color:#f1f5f9;min-width:24px;flex-shrink:0}
-.nw-ddt{font-size:clamp(.6rem,2.3vw,.7rem);color:#475569;margin-top:1px;white-space:nowrap}
+.nw-dname{font-size:clamp(.92rem,4vw,1.08rem);font-weight:900;color:#fff;min-width:28px;flex-shrink:0}
+.nw-ddt{font-size:clamp(.76rem,3.2vw,.88rem);color:#fff;margin-top:1px;white-space:nowrap;font-weight:900}
 .nw-dicos{display:flex;align-items:flex-start;gap:clamp(3px,1.5vw,5px);margin:0 clamp(3px,1.5vw,6px);flex-shrink:0}
 .nw-dico{font-size:clamp(1.05rem,4.5vw,1.35rem);line-height:1.2}
-.nw-dprob{font-size:clamp(.56rem,2vw,.66rem);color:#7dd3fc;text-align:center;margin-top:1px}
+.nw-dprob{font-size:clamp(.66rem,2.5vw,.76rem);color:#38bdf8;font-weight:700;text-align:center;margin-top:2px}
 .nw-dtemps{margin-left:auto;text-align:right;white-space:nowrap;flex-shrink:0}
-.nw-dtmax{font-size:clamp(.86rem,3.5vw,.98rem);font-weight:800;color:#fbbf24}
-.nw-dtmin{font-size:clamp(.74rem,3vw,.84rem);font-weight:700;color:#7dd3fc}
+.nw-dtmax{font-size:clamp(1.02rem,4.5vw,1.2rem);font-weight:900;color:#fbbf24}
+.nw-dtmin{font-size:clamp(.88rem,3.8vw,1rem);font-weight:800;color:#38bdf8}
 .nw-dbot{display:flex;gap:clamp(5px,2.5vw,10px);flex-wrap:wrap;margin-top:5px;padding-top:5px;
   border-top:1px solid rgba(255,255,255,.07);
-  font-size:clamp(.62rem,2.5vw,.75rem);color:#94a3b8;align-items:center}
-.nw-dbot .nw-dv{color:#cbd5e1;font-weight:700}
+  font-size:clamp(.74rem,3vw,.86rem);color:#b0bec5;align-items:center}
+.nw-dbot .nw-dv{color:#f1f5f9;font-weight:800}
 /* ── Outer layout card: nowcast stânga + side-ctrl dreapta (persistent, nu se resetează) ── */
-.nc-outer-layout{display:flex;gap:8px;align-items:flex-start;
+.nc-outer-layout{display:flex;flex-direction:column;gap:8px;
   background:rgba(10,20,36,.55);border-radius:18px;
-  padding:clamp(12px,4vw,18px) clamp(10px,4vw,14px) 12px;
-  border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(8px);
-  margin-bottom:8px}
-/* Nowcast ocupă toată lățimea stânga — fără background propriu (îl moștenește din outer) */
-.nc-outer-layout #nowcast{flex:1;min-width:0;background:none!important;
+  padding:clamp(10px,3.5vw,16px) clamp(10px,3.5vw,14px) 10px;
+  border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(8px);margin-bottom:8px}
+.nc-top{display:flex;justify-content:flex-start;gap:10px;align-items:center;
+  padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.09)}
+.nc-middle{display:flex;flex-direction:column;gap:8px}
+.nc-outer-layout #nowcast{min-width:0;background:none!important;
   border:none!important;border-radius:0!important;padding:0!important;
   backdrop-filter:none!important}
-/* Coloana dreapta: 2 sub-coloane side-by-side */
-.nc-side-ctrl{display:flex;flex-direction:row;gap:5px;flex-shrink:0;padding-top:2px;align-items:flex-start}
+.nc-locbar-inner{flex-shrink:0;min-width:0;flex:1}
+.nc-loc-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.nc-loc-input{flex:1;min-width:80px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  border-radius:7px;padding:5px 8px;font-size:.75rem;color:#e2e8f0;font-family:inherit;
+  outline:none;box-sizing:border-box}
+.nc-loc-input::placeholder{color:#475569}
+.nc-lb{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;color:#cbd5e1;cursor:pointer;font-size:.74rem;font-weight:700;
+  padding:5px 8px;white-space:nowrap;transition:background .14s;font-family:inherit;
+  -webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;gap:3px}
+.nc-lb:hover,.nc-lb:active{background:rgba(255,255,255,.18)}
+.nc-lb.active{background:rgba(37,99,235,.3);border-color:rgba(59,130,246,.5);color:#7dd3fc}
+.nc-bottom{display:flex;gap:5px;flex-wrap:wrap;padding-top:6px;
+  border-top:1px solid rgba(255,255,255,.09)}
+.nc-side-ctrl{display:none}
 .nc-col{display:flex;flex-direction:column;gap:5px}
-/* Selector compact — icoană vizibilă, select transparent deasupra */
 .nc-sel-wrap{position:relative;width:34px;height:34px;display:flex;align-items:center;
   justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
   border-radius:9px;cursor:pointer;overflow:hidden;
@@ -255,9 +268,15 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nc-sel-wrap select{position:absolute;inset:0;opacity:0;cursor:pointer;
   width:100%;height:100%;font-size:16px;margin:0;padding:0}
 .nc-sel-ico{font-size:.9rem;pointer-events:none;z-index:1}
-/* Autoinvățare și notificări — mini, în coloana dreapta */
-.nc-learn-mini,.nc-notif-mini{font-size:.5rem;color:#6b7280;text-align:center;
-  max-width:34px;line-height:1.25;word-break:break-all;padding:0 2px}
+.nc-learn-mini,.nc-notif-mini{font-size:.55rem;color:#94a3b8;text-align:center;
+  max-width:34px;line-height:1.3;word-break:break-all;padding:0 2px}
+/* Buton Încă 7 zile */
+.nw-more7-btn{display:block;width:100%;padding:9px;margin-top:2px;
+  background:rgba(37,99,235,.12);border:1px solid rgba(59,130,246,.3);
+  border-radius:10px;color:#60a5fa;font-size:clamp(.8rem,3.2vw,.92rem);
+  font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;
+  -webkit-tap-highlight-color:transparent}
+.nw-more7-btn:hover,.nw-more7-btn:active{background:rgba(37,99,235,.22)}
 #radar-modal{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;background:#08131e}
 .radar-hdr{display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(8,19,30,.97);border-bottom:1px solid rgba(255,255,255,.12);flex-wrap:wrap;flex-shrink:0}
 .radar-layers{display:flex;gap:5px;flex-wrap:wrap}
@@ -314,22 +333,35 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <!-- Offwarn: position:fixed, panou avertizare ANM -->
 <div id="offwarn"></div>
 
-<!-- ═══ CARD SUMAR + CONTROALE LATERALE ═══ -->
+<!-- ═══ CARD SUMAR: 3 rânduri ═══ -->
 <div class="nc-outer-layout">
-  <!-- Conținut meteo (populat de renderNowcast) -->
-  <div id="nowcast" class="nowcast" style="display:none"></div>
-  <!-- Coloana dreapta: 2 sub-coloane — acțiuni (↺🔔🛰) | selectoare + autoinvățare -->
-  <div class="nc-side-ctrl">
-    <!-- Sub-coloana 1: butoane acțiuni -->
+  <!-- Rând 1: locație + ceas (full width) -->
+  <div class="nc-top" id="nc-top"><!-- populat de updateNcTop() --></div>
+  <!-- Rând 2: conținut meteo (stânga) + căutare locație (dreapta) -->
+  <div class="nc-middle">
+    <div id="nowcast" class="nowcast" style="display:none"></div>
+    <div class="nc-locbar-inner">
+      <div class="nc-loc-row">
+        <input id="loc-q" class="nc-loc-input" type="text" data-i18n-ph="loc_ph" onkeydown="locKey(event)" autocomplete="off" placeholder="Caută…">
+        <button class="nc-lb" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
+        <button class="nc-lb loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 GPS</button>
+        <button class="nc-lb loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
+        <button class="nc-lb loc-fixed" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
+        <button class="nc-lb loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
+        <button class="nc-lb loc-fixed" id="btn-raieti"  onclick="goFixed('raieti')">🏡 Raieti</button>
+      </div>
+      <div id="loc-res" class="loc-res" style="display:none"></div>
+    </div>
+  </div>
+  <!-- Rând 3: 2 coloane controale (sub header) -->
+  <div class="nc-bottom">
     <div class="nc-col">
-      <button class="nc-abtn nc-abtn-ref"   onclick="forceLoad()"      title="↺" data-i18n-title="refresh">↺</button>
-      <button class="nc-abtn nc-abtn-notif" onclick="requestNotif()"   title="🔔" data-i18n-title="notif">🔔</button>
+      <button class="nc-abtn nc-abtn-ref"   onclick="forceLoad()"       title="↺" data-i18n-title="refresh">↺</button>
+      <button class="nc-abtn nc-abtn-notif" onclick="requestNotif()"    title="🔔" data-i18n-title="notif">🔔</button>
       <button class="nc-abtn nc-abtn-radar" onclick="openRadar('rain')" title="🛰️" data-i18n-title="radar_btn">🛰️</button>
     </div>
-    <!-- Sub-coloana 2: selectoare interval/limbă + autoinvățare -->
     <div class="nc-col">
-      <label class="nc-sel-wrap" data-i18n-title="refresh_at">
-        <span class="nc-sel-ico">⏱</span>
+      <label class="nc-sel-wrap" data-i18n-title="refresh_at"><span class="nc-sel-ico">⏱</span>
         <select id="refresh-sel" onchange="setRefreshInterval(this.value)">
           <option value="15">15 min</option><option value="30">30 min</option>
           <option value="45">45 min</option><option value="60">1 h</option>
@@ -339,8 +371,7 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
           <option value="165">2h45</option><option value="180">3 h</option>
         </select>
       </label>
-      <label class="nc-sel-wrap" data-i18n-title="lang_label">
-        <span class="nc-sel-ico">🌐</span>
+      <label class="nc-sel-wrap" data-i18n-title="lang_label"><span class="nc-sel-ico">🌐</span>
         <select id="lang-sel" onchange="setLang(this.value)">
           <option value="ro">RO</option><option value="en">EN</option>
           <option value="fr">FR</option><option value="es">ES</option>
@@ -367,20 +398,57 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <div class="nw-main">
   <div class="nw-hstrip-wrap"><div id="nw-hstrip" class="nw-hstrip"></div></div>
   <div id="nw-days" class="nw-days"></div>
+  <!-- Buton Încă 7 zile + zilele 8-14 -->
+  <button id="btn-more7" class="nw-more7-btn" onclick="toggleMore7Days()" data-i18n="more_7_days">Încă 7 zile</button>
+  <div id="nw-days2" class="nw-days" style="display:none"></div>
 </div>
 
-<!-- ═══ LOCBAR — după cele 7 zile ═══ -->
-<div class="nw-ctrl-section">
-  <div class="locbar">
-    <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" data-i18n-ph="loc_ph" onkeydown="locKey(event)" autocomplete="off">
-    <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
-    <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 Locația curentă</button>
-    <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
-    <button class="btn loc-fixed" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
-    <button class="btn loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
-    <button class="btn loc-fixed" id="btn-raieti"  onclick="goFixed('raieti')">🏡 Raieti</button>
+<!-- locbar mutat în card -->
+
+<!-- PRAGURI AJUSTABILE -->
+<!-- MUTATE LA FINAL -->
+
+<!-- AZI / MAINE (ascunse — date păstrate intern) -->
+<div class="sgrid" style="display:none">
+  <div class="card" id="card-azi">
+    <div class="card-hdr"><span class="day-lbl" id="lbl-azi" data-i18n="today_section">Astăzi</span><span class="date-lbl" id="dt-azi">—</span></div>
+    <div id="body-azi" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
   </div>
-  <div id="loc-res" class="loc-res" style="display:none"></div>
+  <div class="card" id="card-maine">
+    <div class="card-hdr"><span class="day-lbl" id="lbl-maine" data-i18n="tomorrow_section">Mâine</span><span class="date-lbl" id="dt-maine">—</span></div>
+    <div id="body-maine" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
+  </div>
+</div>
+
+<!-- 7 ZILE (tabel vechi ascuns — înlocuit de nw-days) -->
+<div class="sec" style="display:none">
+  <div class="sec-title" data-i18n="week7">📅 Prognoză 7 zile (de azi)</div>
+  <div id="wk-body" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
+</div>
+
+<!-- BUTON ORAR -->
+<div class="sec">
+  <button class="tog" id="tog-h" onclick="toggleHourly()" data-i18n="show_hourly">🕐 Arată val orare 14 zile</button>
+  <div id="htbl" style="display:none"></div>
+</div>
+
+<!-- SURSE -->
+<div class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    <div class="sec-title" style="font-size:.92rem;margin:0"><span data-i18n="sources_title">📡 Surse</span> (<span id="ok-cnt">—</span>)</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn src-toggle" id="btn-best" onclick="selectBestSources()">⭐ Best</button>
+      <button class="btn src-toggle" id="btn-all"  onclick="selectAllSources()">✓ Toate</button>
+      <button class="btn src-toggle" id="btn-none" onclick="selectNoSources()">○ Niciuna</button>
+    </div>
+  </div>
+  <div style="color:#7c93ad;font-size:.74rem;margin-bottom:7px" data-i18n="src_hint">
+    Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant doar din sursele selectate. Sursele inactive (✗) nu au date pentru locația curentă.
+  </div>
+  <div class="mbadges" id="mbadges"></div>
+  <div class="foot" id="src-description" data-i18n="src_description">
+    12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE Europa) + MET Norway, plus 2 modele ENSEMBLE 🎯 pentru azi+mâine · actualizare automată din 15 în 15 minute
+  </div>
 </div>
 
 <!-- PRAGURI AJUSTABILE -->
@@ -407,50 +475,6 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   </label>
   <span class="thr-hint" id="thr-note">probabilități recalculate din ensemble</span>
 </div>
-
-<!-- AZI / MAINE (ascunse — date păstrate intern) -->
-<div class="sgrid" style="display:none">
-  <div class="card" id="card-azi">
-    <div class="card-hdr"><span class="day-lbl" id="lbl-azi" data-i18n="today_section">Astăzi</span><span class="date-lbl" id="dt-azi">—</span></div>
-    <div id="body-azi" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
-  </div>
-  <div class="card" id="card-maine">
-    <div class="card-hdr"><span class="day-lbl" id="lbl-maine" data-i18n="tomorrow_section">Mâine</span><span class="date-lbl" id="dt-maine">—</span></div>
-    <div id="body-maine" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
-  </div>
-</div>
-
-<!-- 7 ZILE (tabel vechi ascuns — înlocuit de nw-days) -->
-<div class="sec" style="display:none">
-  <div class="sec-title" data-i18n="week7">📅 Prognoză 7 zile (de azi)</div>
-  <div id="wk-body" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
-</div>
-
-<!-- BUTON ORAR -->
-<div class="sec">
-  <button class="tog" id="tog-h" onclick="toggleHourly()" data-i18n="show_hourly">🕐 Arată valorile orare (7 zile)</button>
-  <div id="htbl" style="display:none"></div>
-</div>
-
-<!-- SURSE -->
-<div class="sec">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-    <div class="sec-title" style="font-size:.92rem;margin:0"><span data-i18n="sources_title">📡 Surse</span> (<span id="ok-cnt">—</span>)</div>
-    <div style="display:flex;gap:6px">
-      <button class="btn src-toggle" id="btn-best" onclick="selectBestSources()">⭐ Best</button>
-      <button class="btn src-toggle" id="btn-all"  onclick="selectAllSources()">✓ Toate</button>
-      <button class="btn src-toggle" id="btn-none" onclick="selectNoSources()">○ Niciuna</button>
-    </div>
-  </div>
-  <div style="color:#7c93ad;font-size:.74rem;margin-bottom:7px" data-i18n="src_hint">
-    Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant doar din sursele selectate. Sursele inactive (✗) nu au date pentru locația curentă.
-  </div>
-  <div class="mbadges" id="mbadges"></div>
-  <div class="foot" id="src-description" data-i18n="src_description">
-    12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE Europa) + MET Norway, plus 2 modele ENSEMBLE 🎯 pentru azi+mâine · actualizare automată din 15 în 15 minute
-  </div>
-</div>
-
 </div>
 
 <script>
@@ -1971,15 +1995,22 @@ function renderNowcast(hours,cur){
     }
   });
   if(!L.length)L.push(`<span style="color:#8aa0b8">${t('no_chances')}</span>`);
-  // ── Header: locație + altitudine + ceas ──
+  // ── Header: locație + altitudine + ceas → se pune în #nc-top (SEPARAT de #nowcast) ──
   const locShort=(LOC_NAME||'').split(',')[0].trim()||'—';
   const elevVal=ELEV_OVERRIDE!=null?ELEV_OVERRIDE:(_resolvedElev!=null?Math.round(_resolvedElev):null);
   const elevHtml=elevVal!=null?` <span class="nc-loc-elev">· ${t('altitude')} ${elevVal}m</span>`:'';
   const timeNow=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
-  const headerHtml=`<div class="nc-header-row">`+
+  const topEl=el('nc-top');
+  if(topEl)topEl.innerHTML=
     `<div class="nc-loc-alt"><span class="nc-loc-name">📍 ${esc(locShort)}</span>${elevHtml}</div>`+
-    `<span class="nc-clock-big">🕐 ${timeNow}</span>`+
-    `</div>`;
+    `<span class="nc-clock-big">🕐 ${timeNow}</span>`;
+
+  // Actualizează și butoanele compacte de locație din card (active state)
+  ['daneti','craiova','york','raieti','gps'].forEach(loc=>{
+    const b=el('btn-'+loc);
+    if(b)b.classList[_locKind===loc?'add':'remove']('active');
+  });
+
   // Eveniment ploaie >10 l/mp în orizontul prognozat (vizibil dacă există)
   const nre=nextRainEvent(hours);
   let nreHtml='';
@@ -1988,7 +2019,6 @@ function renderNowcast(hours,cur){
       `${roDateLong(nre.dk)} · <b>${(Math.round(nre.total*10)/10).toFixed(1).replace('.',',')} l/mp</b> · ${t('at_hour')} ${nre.from}–${nre.to}</div>`;
   }
   box.innerHTML=
-    headerHtml+
     `<div class="nc-main"><span class="nc-ico">${cond.i}</span>`+
     `<span>${tCur!=null?tCur+'°C':'—'}</span>`+
     `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}`+
@@ -2098,7 +2128,7 @@ const I18N={
     refresh:'↺ Actualizează',notif:'🔔 Notificări',refresh_at:'⏲ Actualizare la:',
     retry:'↺ Reîncearcă',lang_label:'🌐 Limbă:',
     week7:'📅 Prognoză 7 zile (de azi)',
-    show_hourly:'🕐 Arată valorile orare (7 zile)',hide_hourly:'🕐 Ascunde valorile orare (7 zile)',
+    show_hourly:'🕐 Arată val orare 14 zile',hide_hourly:'🕐 Ascunde val orare 14 zile',more_7_days:'Încă 7 zile',see_hourly:'Vezi valorile orare',
     today:'Astăzi',tomorrow:'Mâine',loading:'Se încarcă...',
     sources:'📡 Surse',best:'⭐ Best',all:'✓ Toate',none:'○ Niciuna',
     sources_tip:'Click pe o sursă activă pentru a o include (✓) sau exclude (○). Prognoza se recalculează instant.',
@@ -2193,7 +2223,7 @@ const I18N={
     refresh:'↺ Refresh',notif:'🔔 Notifications',refresh_at:'⏲ Refresh every:',
     retry:'↺ Retry',lang_label:'🌐 Language:',
     week7:'📅 7-day forecast (from today)',
-    show_hourly:'🕐 Show hourly values (7 days)',hide_hourly:'🕐 Hide hourly values (7 days)',
+    show_hourly:'🕐 Show 14-day hourly',hide_hourly:'🕐 Hide 14-day hourly',more_7_days:'7 more days',see_hourly:'See hourly values',
     today:'Today',tomorrow:'Tomorrow',loading:'Loading...',
     sources:'📡 Sources',best:'⭐ Best',all:'✓ All',none:'○ None',
     sources_tip:'Click an active source to include (✓) or exclude (○). Forecast recalculates instantly.',
@@ -2288,7 +2318,7 @@ const I18N={
     refresh:'↺ Actualiser',notif:'🔔 Notifications',refresh_at:'⏲ Actualiser :',
     retry:'↺ Réessayer',lang_label:'🌐 Langue :',
     week7:"📅 Prévisions 7 jours (dès aujourd'hui)",
-    show_hourly:'🕐 Afficher les valeurs horaires (7 jours)',hide_hourly:'🕐 Masquer les valeurs horaires (7 jours)',
+    show_hourly:'🕐 Afficher horaire 14j',hide_hourly:'🕐 Masquer horaire 14j',more_7_days:'7 jours de plus',see_hourly:'Voir les valeurs horaires',
     today:"Aujourd'hui",tomorrow:'Demain',loading:'Chargement...',
     sources:'📡 Sources',best:'⭐ Best',all:'✓ Toutes',none:'○ Aucune',
     sources_tip:"Cliquez sur une source active pour l'inclure (\u2713) ou l'exclure (\u25cb).",
@@ -2383,7 +2413,7 @@ const I18N={
     refresh:'↺ Actualizar',notif:'🔔 Notificaciones',refresh_at:'⏲ Actualizar cada:',
     retry:'↺ Reintentar',lang_label:'🌐 Idioma:',
     week7:'📅 Pronóstico 7 días (desde hoy)',
-    show_hourly:'🕐 Mostrar valores horarios (7 días)',hide_hourly:'🕐 Ocultar valores horarios (7 días)',
+    show_hourly:'🕐 Mostrar horario 14 días',hide_hourly:'🕐 Ocultar horario 14 días',more_7_days:'7 días más',see_hourly:'Ver valores horarios',
     today:'Hoy',tomorrow:'Mañana',loading:'Cargando...',
     sources:'📡 Fuentes',best:'⭐ Best',all:'✓ Todas',none:'○ Ninguna',
     sources_tip:'Haz clic en una fuente activa para incluirla (\u2713) o excluirla (\u25cb).',
@@ -2478,7 +2508,7 @@ const I18N={
     refresh:'↺ Aktualisieren',notif:'🔔 Mitteilungen',refresh_at:'⏲ Aktualisieren:',
     retry:'↺ Wiederholen',lang_label:'🌐 Sprache:',
     week7:'📅 7-Tage-Vorhersage (ab heute)',
-    show_hourly:'🕐 Stündliche Werte anzeigen (7 Tage)',hide_hourly:'🕐 Stündliche Werte ausblenden (7 Tage)',
+    show_hourly:'🕐 Stundenwerte 14 Tage',hide_hourly:'🕐 Stundenwerte ausblenden',more_7_days:'7 weitere Tage',see_hourly:'Stundenwerte anzeigen',
     today:'Heute',tomorrow:'Morgen',loading:'Wird geladen...',
     sources:'📡 Quellen',best:'⭐ Best',all:'✓ Alle',none:'○ Keine',
     sources_tip:'Klicken Sie auf eine aktive Quelle, um sie einzuschließen (\u2713) oder auszuschließen (\u25cb).',
@@ -2573,7 +2603,7 @@ const I18N={
     refresh:'↺ Aggiorna',notif:'🔔 Notifiche',refresh_at:'⏲ Aggiorna ogni:',
     retry:'↺ Riprova',lang_label:'🌐 Lingua:',
     week7:'📅 Previsioni 7 giorni (da oggi)',
-    show_hourly:'🕐 Mostra valori orari (7 giorni)',hide_hourly:'🕐 Nascondi valori orari (7 giorni)',
+    show_hourly:'🕐 Valori orari 14 giorni',hide_hourly:'🕐 Nascondi valori orari',more_7_days:'Altri 7 giorni',see_hourly:'Vedi valori orari',
     today:'Oggi',tomorrow:'Domani',loading:'Caricamento...',
     sources:'📡 Fonti',best:'⭐ Best',all:'✓ Tutte',none:'○ Nessuna',
     sources_tip:"Clicca su una fonte attiva per includerla (\u2713) o escluderla (\u25cb).",
@@ -2739,6 +2769,11 @@ function applyLang(){
   if(togH){const open=togH.getAttribute('data-open')==='1';togH.textContent=open?t('hide_hourly'):t('show_hourly');}
   // Re-randează badge-urile de modele (traducere membri + title-uri)
   if(typeof _lastValid!=='undefined'&&_lastValid&&_lastValid.length)renderModels(_lastValid);
+  // Re-randează zilele 8-14 dacă sunt vizibile (traducere)
+  if(typeof _more7Visible!=='undefined'&&_more7Visible&&typeof _lastHoursRef!=='undefined'&&_lastHoursRef)renderNWDays2(_lastHoursRef);
+  // Actualizează textul butonului Încă 7 zile
+  const b7=el('btn-more7');
+  if(b7)b7.textContent=_more7Visible&&typeof _more7Visible!=='undefined'?('▲ '+t('more_7_days')):t('more_7_days');
 }
 function setLang(code){
   if(!I18N[code])return;
@@ -2861,7 +2896,7 @@ function renderNWHStrip(hours){
     let daySep='';
     if(h.dk!==prevDk&&prevDk!==''){
       const dayName=zile[dow(h.dk)];
-      daySep=`<div class="nw-daysep" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:28px;writing-mode:vertical-lr;font-size:.6rem;font-weight:800;color:#3b82f6;background:rgba(37,99,235,.12);border-radius:6px;border:1px solid rgba(59,130,246,.2)">${dayName}</div>`;
+      daySep=`<div class="nw-daysep" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:28px;writing-mode:vertical-lr;font-size:.6rem;font-weight:800;color:#60a5fa;background:rgba(37,99,235,.18);border-radius:6px;border:1px solid rgba(59,130,246,.35)">${dayName}</div>`;
     }
     prevDk=h.dk;
     return daySep+`<div class="nw-hcell${isNow?' nw-now':''}">
@@ -2921,6 +2956,65 @@ function renderNWDays(hours){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Zilele 8-14: „Încă 7 zile" ──────────────────────────────────
+let _more7Visible=false;
+let _lastHoursRef=null;   // referință la hours pentru re-render la schimbare limbă
+
+function next14days(){
+  const out=[];const d0=new Date(dkNow()+'T12:00:00');
+  for(let i=0;i<14;i++){const d=new Date(d0);d.setDate(d.getDate()+i);out.push(d.toISOString().split('T')[0]);}
+  return out;
+}
+
+function renderNWDays2(hours){
+  const dl=el('nw-days2');if(!dl)return;
+  const days=next14days().slice(7);   // zilele 8-14
+  const dk0=dkNow();const zile=getZileScurt();
+  dl.innerHTML=days.map(dk=>{
+    const s=dayStats(hours,dk);const dh=dayHours(hours,dk);
+    if(!dh.length)return'';
+    const dH=dh.find(h=>h.h===12)||dh.find(h=>h.h===14)||dh[Math.floor(dh.length/2)];
+    const nH=dh.find(h=>h.h===22)||dh.find(h=>h.h===20)||dh[dh.length-1];
+    const dayIco=condIcon(dH).i,nightIco=condIcon(nH).i;
+    const maxP=dh.length?Math.max(...dh.map(h=>h.rainProb||0)):0;
+    const winds=dh.map(h=>h.wMean).filter(v=>v!=null);
+    const wMin=winds.length?Math.round(Math.min(...winds)):0;
+    const wMax=s?.wmax||0;
+    const wRange=wMin<wMax?`${wMin}-${wMax}`:`${wMax}`;
+    const wAr=windArrow(s?.predDir)||'';
+    const name=zile[dow(dk)];
+    const dateStr=`${dDay(dk)}.${String(dMon(dk)).padStart(2,'0')}`;
+    return `<div class="nw-day" onclick="gotoNWDay('${dk}')" title="${t('see_hourly')}">
+      <div class="nw-dtop">
+        <div><div class="nw-dname">${name}</div><div class="nw-ddt">${dateStr}</div></div>
+        <div class="nw-dicos">
+          <div style="text-align:center"><div class="nw-dico">${dayIco}</div><div class="nw-dprob">${maxP}%</div></div>
+          <div class="nw-dico">${nightIco}</div>
+        </div>
+        <div class="nw-dtemps">
+          <div class="nw-dtmax">${s?.tmax!=null?s.tmax+'°':'—'}</div>
+          <div class="nw-dtmin">${s?.tmin!=null?s.tmin+'°':'—'}</div>
+        </div>
+      </div>
+      <div class="nw-dbot">
+        <span>→ <span class="nw-dv">${wRange} km/h</span> ${wAr}</span>
+        <span>💧 <span class="nw-dv">${s?.totP!=null?s.totP+' l':'—'}</span></span>
+        ${s?.dpAvg!=null?`<span>🌫 <span class="nw-dv">${s.dpAvg}°</span></span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMore7Days(){
+  _more7Visible=!_more7Visible;
+  const d2=el('nw-days2');const btn=el('btn-more7');
+  if(d2){
+    d2.style.display=_more7Visible?'flex':'none';
+    if(_more7Visible&&_lastHoursRef)renderNWDays2(_lastHoursRef);
+  }
+  if(btn)btn.textContent=_more7Visible?('▲ '+t('more_7_days')):t('more_7_days');
 }
 
 function renderWeek(hours){
@@ -3222,8 +3316,10 @@ function applyResults(results){
   renderWeek(hours);
   renderHourly(hours);
   // Noile secțiuni (strip 5 ore + 7 zile stil card)
+  _lastHoursRef=hours;
   renderNWHStrip(hours);
   renderNWDays(hours);
+  if(_more7Visible)renderNWDays2(hours);
   checkNotifications(hours);
   fetchOfficialWarnings();       // reîmprospătează din Meteoalarm (asincron, nu blochează randarea)
 
@@ -3410,7 +3506,6 @@ function checkNotifications(hours){
   const notified=getNotified();
   const now=Date.now();
   ['rain','wind'].forEach(type=>{
-    // Verifică ambele niveluri: probabilitate >40% și >70%
     [{prob:P_LOW,lvl:'low'},{prob:P_HIGH,lvl:'high'}].forEach(({prob,lvl})=>{
       groupEvents(hours,type,prob).forEach(ev=>{
         const startMs=new Date(ev.s.dk+'T'+String(ev.s.h).padStart(2,'0')+':00:00').getTime();
@@ -3420,15 +3515,19 @@ function checkNotifications(hours){
           markNotified(key);
           const from=fH(ev.s.h);
           const toH=ev.e.h+1;
-          const to=toH>=24?'00:00 ('+t('next_day')+')':fH(toH);
-          const hi=lvl==='high';
-          const prefix=hi?(t('chance_high')+P_HIGH+'% '):(t('possible')+' ');
-          if(type==='rain')
-            fireNotif(hi?(t('notify_rain_prob')+P_HIGH+'%'):t('notify_rain_pos'),
-              prefix+t('notify_rain_from')+' '+from+' '+t('notify_rain_to')+' '+to);
-          else
-            fireNotif(hi?(t('notify_wind_prob')+P_HIGH+'%'):t('notify_wind_pos'),
-              prefix+t('notify_wind_from')+' '+from+' '+t('notify_rain_to')+' '+to);
+          const to=toH>=24?'00:00':fH(toH);
+          // Calculează valoarea maximă reală din interval
+          const evHours=hours.filter(h=>h.dk===ev.s.dk&&h.h>=ev.s.h&&h.h<=ev.e.h);
+          if(type==='rain'){
+            const maxP=evHours.reduce((m,h)=>Math.max(m,h.pMean||0),0);
+            const vStr=(Math.round(maxP*10)/10).toFixed(1).replace('.',',');
+            // Format: "🌧 Ploaie 3,0l/mp între 7:00-9:00" — tradus în curent
+            fireNotif(`🌧 ${t('alert_rain')} ${vStr} ${t('unit_lmp')} ${t('alert_between')} ${from}–${to}`,'');
+          } else {
+            const maxW=evHours.reduce((m,h)=>Math.max(m,h.wMean||0),0);
+            // Format: "💨 Vânt 15km/h între 8:00-10:00" — tradus în curent
+            fireNotif(`💨 ${t('alert_wind')} ${Math.round(maxW)} km/h ${t('alert_between')} ${from}–${to}`,'');
+          }
         }
       });
     });
@@ -3693,9 +3792,13 @@ function applyDynamicBg(){
 
 // Ceas live (sus-dreapta), în fusul orar al locației
 function tickClock(){
-  const ec=el('clock');if(!ec)return;
-  try{ec.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});}
-  catch(e){ec.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+  try{
+    const t2=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+    const ec=el('clock');if(ec)ec.textContent=t2;
+    // Actualizează ceasul vizibil din nc-top (dacă există)
+    const nct=el('nc-top');
+    if(nct){const ck=nct.querySelector('.nc-clock-big');if(ck)ck.textContent='🕐 '+t2;}
+  }catch(e){}
 }
 tickClock();setInterval(tickClock,1000);
 
