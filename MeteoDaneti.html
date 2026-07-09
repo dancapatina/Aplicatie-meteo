@@ -18,7 +18,7 @@
 html,body{height:100%}
 body{background:linear-gradient(165deg,#050a12 0%,#091826 100%);color:#fff;
   font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:10px;font-size:16px}
-.wrap{max-width:1180px;margin:0 auto}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(8px,3vw,16px) 24px}
 
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px}
@@ -135,6 +135,31 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 .nowcast .nc-ico{font-size:2rem;line-height:1}
 .nowcast .nc-cond{font-size:1.15rem;font-weight:700;color:#cfe0f2}
 .nowcast .nc-sub{margin-top:7px;font-size:.92rem;color:#aac1da;display:flex;gap:16px;flex-wrap:wrap}
+/* Layout nowcast: conținut stânga + butoane acțiuni dreapta (vertical, icon-only) */
+.nc-layout{display:flex;gap:8px;align-items:flex-start}
+.nc-content{flex:1;min-width:0}
+.nc-acts{display:flex;flex-direction:column;gap:5px;flex-shrink:0;padding-top:2px}
+.nc-abtn{border:none;border-radius:9px;cursor:pointer;font-size:1.1rem;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  transition:background .14s,transform .1s;flex-shrink:0;font-family:inherit;
+  -webkit-tap-highlight-color:transparent}
+.nc-abtn:active{transform:scale(.88)}
+.nc-abtn:hover{filter:brightness(1.25)}
+.nc-abtn-ref  {background:rgba(37,99,235,.2);color:#7dd3fc;border:1px solid rgba(59,130,246,.35)}
+.nc-abtn-notif{background:rgba(6,95,70,.2); color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
+.nc-abtn-radar{background:rgba(14,79,115,.25);color:#7dd3fc;border:1px solid rgba(59,130,246,.3)}
+/* Buton închidere panou avertizare (✕ dreapta-sus în panou) */
+.ow-panel-head{font-weight:800;font-size:1rem;line-height:1.25;display:flex;justify-content:space-between;align-items:center}
+.ow-close-x{background:none;border:none;color:inherit;opacity:.65;cursor:pointer;font-size:1.1rem;padding:0 2px;line-height:1;font-weight:800;font-family:inherit}
+.ow-close-x:hover{opacity:1}
+/* Valori rain+wind inline în nc-cond */
+.nc-iv{font-size:.82rem;color:#aac1da;font-weight:600;white-space:nowrap}
+.nc-iv b{color:#e2e8f0}
+/* Mini-triunghiuri ▲ avertizare în sumar */
+.nc-mini-warns{display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle}
+.nc-mtri{font-size:.85rem;line-height:1;cursor:pointer;transition:transform .12s,filter .12s;
+  filter:drop-shadow(0 0 3px currentColor)}
+.nc-mtri:hover{transform:scale(1.25)}
 .nc-rel-prob{margin-top:6px;padding:5px 9px;background:rgba(255,255,255,.05);border-radius:7px;font-size:.75rem;display:flex;flex-direction:column;gap:4px;border:1px solid rgba(255,255,255,.07)}
 .rp-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
 .rp-lbl{color:#5a7390;min-width:86px;font-size:.7rem}
@@ -152,7 +177,87 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   border-radius:14px;padding:3px 8px;font-weight:700;font-size:.7rem;line-height:1;
   font-family:inherit;animation:owPulse 1.6s ease-out}
 @keyframes owPulse{0%{box-shadow:0 0 0 rgba(255,255,255,0)}40%{box-shadow:0 0 14px rgba(255,255,255,.3)}100%{box-shadow:0 0 0 rgba(255,255,255,0)}}
-/* ── Modal Radar Windy ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   NOU: WEATHER DISPLAY — card sumar + strip orar + 7 zile
+   ═══════════════════════════════════════════════════════════ */
+.nw-main{display:flex;flex-direction:column;gap:clamp(5px,2vw,8px);padding:2px 0 6px}
+/* Strip 5→72 ore cu scroll orizontal (swipe stânga pentru mai multe ore) */
+.nw-hstrip-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding-bottom:4px;cursor:grab}
+.nw-hstrip-wrap::-webkit-scrollbar{display:none}
+.nw-hstrip-wrap:active{cursor:grabbing}
+.nw-hstrip{display:flex;gap:clamp(4px,1.5vw,6px);width:max-content;padding:1px 2px}
+.nw-hcell{background:rgba(255,255,255,.06);border-radius:10px;
+  padding:clamp(5px,2vw,8px) 3px;text-align:center;border:1px solid rgba(255,255,255,.07);
+  cursor:default;min-width:clamp(58px,18vw,72px);flex-shrink:0;overflow:hidden}
+.nw-hcell.nw-now{background:rgba(37,99,235,.2);border-color:rgba(59,130,246,.45)}
+.nw-hh{font-size:clamp(.58rem,2.4vw,.72rem);color:#9fb3c8;font-weight:700;margin-bottom:3px}
+/* Rânduri în celulă: temp, ploaie, vânt */
+.nw-hline{display:flex;justify-content:space-between;align-items:center;
+  gap:2px;padding:0 2px;min-height:clamp(15px,4.5vw,18px)}
+.nw-hval{font-size:clamp(.65rem,2.8vw,.78rem);font-weight:700;white-space:nowrap;color:#e2e8f0}
+.nw-hval.t{font-size:clamp(.8rem,3.5vw,.95rem);font-weight:800;color:#f1f5f9}
+.nw-hval.r{color:#7dd3fc}
+.nw-hval.w{color:#fbbf24}
+.nw-rel{font-size:clamp(.52rem,1.9vw,.62rem);color:#475569;white-space:nowrap;
+  background:rgba(255,255,255,.05);border-radius:3px;padding:0 2px;line-height:1.4}
+/* Header sumar: locație + altitudine + ceas */
+.nc-header-row{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.09)}
+.nc-loc-alt{font-size:clamp(.78rem,3.2vw,.92rem);font-weight:800;color:#7dd3fc;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.nc-loc-name{color:#38bdf8;font-weight:800}
+.nc-loc-elev{color:#fbbf24;font-size:.85em;font-weight:700;background:rgba(251,191,36,.1);
+  border-radius:5px;padding:1px 5px;border:1px solid rgba(251,191,36,.25)}
+.nc-clock-big{font-size:clamp(.98rem,4.5vw,1.3rem);font-weight:800;color:#fbbf24;
+  font-variant-numeric:tabular-nums;letter-spacing:.5px;white-space:nowrap}
+/* 7 zile — click → orar */
+.nw-days{display:flex;flex-direction:column;gap:clamp(4px,1.5vw,6px)}
+.nw-day{background:rgba(255,255,255,.055);border-radius:11px;
+  padding:clamp(6px,2.5vw,9px) clamp(8px,3vw,12px);
+  border:1px solid rgba(255,255,255,.07);cursor:pointer;
+  -webkit-tap-highlight-color:rgba(37,99,235,.2);
+  transition:background .15s}
+.nw-day:hover,.nw-day:active{background:rgba(37,99,235,.15)}
+.nw-day.nw-today{background:rgba(37,99,235,.1);border-color:rgba(59,130,246,.28)}
+.nw-dtop{display:flex;align-items:center;gap:clamp(4px,1.5vw,6px)}
+.nw-dname{font-size:clamp(.74rem,3vw,.84rem);font-weight:800;color:#f1f5f9;min-width:24px;flex-shrink:0}
+.nw-ddt{font-size:clamp(.6rem,2.3vw,.7rem);color:#475569;margin-top:1px;white-space:nowrap}
+.nw-dicos{display:flex;align-items:flex-start;gap:clamp(3px,1.5vw,5px);margin:0 clamp(3px,1.5vw,6px);flex-shrink:0}
+.nw-dico{font-size:clamp(1.05rem,4.5vw,1.35rem);line-height:1.2}
+.nw-dprob{font-size:clamp(.56rem,2vw,.66rem);color:#7dd3fc;text-align:center;margin-top:1px}
+.nw-dtemps{margin-left:auto;text-align:right;white-space:nowrap;flex-shrink:0}
+.nw-dtmax{font-size:clamp(.86rem,3.5vw,.98rem);font-weight:800;color:#fbbf24}
+.nw-dtmin{font-size:clamp(.74rem,3vw,.84rem);font-weight:700;color:#7dd3fc}
+.nw-dbot{display:flex;gap:clamp(5px,2.5vw,10px);flex-wrap:wrap;margin-top:5px;padding-top:5px;
+  border-top:1px solid rgba(255,255,255,.07);
+  font-size:clamp(.62rem,2.5vw,.75rem);color:#94a3b8;align-items:center}
+.nw-dbot .nw-dv{color:#cbd5e1;font-weight:700}
+/* ── Outer layout card: nowcast stânga + side-ctrl dreapta (persistent, nu se resetează) ── */
+.nc-outer-layout{display:flex;gap:8px;align-items:flex-start;
+  background:rgba(10,20,36,.55);border-radius:18px;
+  padding:clamp(12px,4vw,18px) clamp(10px,4vw,14px) 12px;
+  border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(8px);
+  margin-bottom:8px}
+/* Nowcast ocupă toată lățimea stânga — fără background propriu (îl moștenește din outer) */
+.nc-outer-layout #nowcast{flex:1;min-width:0;background:none!important;
+  border:none!important;border-radius:0!important;padding:0!important;
+  backdrop-filter:none!important}
+/* Coloana dreapta: 2 sub-coloane side-by-side */
+.nc-side-ctrl{display:flex;flex-direction:row;gap:5px;flex-shrink:0;padding-top:2px;align-items:flex-start}
+.nc-col{display:flex;flex-direction:column;gap:5px}
+/* Selector compact — icoană vizibilă, select transparent deasupra */
+.nc-sel-wrap{position:relative;width:34px;height:34px;display:flex;align-items:center;
+  justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+  border-radius:9px;cursor:pointer;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;transition:background .14s}
+.nc-sel-wrap:hover{background:rgba(255,255,255,.16)}
+.nc-sel-wrap select{position:absolute;inset:0;opacity:0;cursor:pointer;
+  width:100%;height:100%;font-size:16px;margin:0;padding:0}
+.nc-sel-ico{font-size:.9rem;pointer-events:none;z-index:1}
+/* Autoinvățare și notificări — mini, în coloana dreapta */
+.nc-learn-mini,.nc-notif-mini{font-size:.5rem;color:#6b7280;text-align:center;
+  max-width:34px;line-height:1.25;word-break:break-all;padding:0 2px}
 #radar-modal{display:none;position:fixed;inset:0;z-index:10000;flex-direction:column;background:#08131e}
 .radar-hdr{display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(8,19,30,.97);border-bottom:1px solid rgba(255,255,255,.12);flex-wrap:wrap;flex-shrink:0}
 .radar-layers{display:flex;gap:5px;flex-wrap:wrap}
@@ -197,58 +302,54 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <body>
 <div class="wrap">
 
-<div class="hdr">
-  <div>
-    <div class="logo">🌦 MeteoLocal <span id="clock" class="clock"></span></div>
-    <div class="locname-big" id="locname"><span class="loc-city">📍 Daneti</span></div>
-    <div class="coord" id="coord">43.983°N · 24.050°E</div>
-    <div id="offwarn"></div>
-    <div id="nowcast" class="nowcast" style="display:none"></div>
-    <div class="locbar">
-      <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" data-i18n-ph="loc_ph" onkeydown="locKey(event)" autocomplete="off">
-      <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
-      <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 Locația curentă</button>
-      <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
-      <button class="btn loc-fixed" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
-      <button class="btn loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
-      <button class="btn loc-fixed" id="btn-raieti"  onclick="goFixed('raieti')">🏡 Raieti</button>
+<!-- Elemente de stare necesare JS (nevizibile, nu afișate) -->
+<div style="display:none" aria-hidden="true">
+  <div class="locname-big" id="locname"><span class="loc-city">📍 Daneti</span></div>
+  <div class="coord" id="coord">43.983°N · 24.050°E</div>
+  <span id="clock"></span>
+  <span id="upd"></span><span id="cdown"></span><span id="flash"></span>
+  <button id="btn-now" onclick="forceLoad()">↺</button>
+  <button id="btn-notif" onclick="requestNotif()">🔔</button>
+</div>
+<!-- Offwarn: position:fixed, panou avertizare ANM -->
+<div id="offwarn"></div>
+
+<!-- ═══ CARD SUMAR + CONTROALE LATERALE ═══ -->
+<div class="nc-outer-layout">
+  <!-- Conținut meteo (populat de renderNowcast) -->
+  <div id="nowcast" class="nowcast" style="display:none"></div>
+  <!-- Coloana dreapta: 2 sub-coloane — acțiuni (↺🔔🛰) | selectoare + autoinvățare -->
+  <div class="nc-side-ctrl">
+    <!-- Sub-coloana 1: butoane acțiuni -->
+    <div class="nc-col">
+      <button class="nc-abtn nc-abtn-ref"   onclick="forceLoad()"      title="↺" data-i18n-title="refresh">↺</button>
+      <button class="nc-abtn nc-abtn-notif" onclick="requestNotif()"   title="🔔" data-i18n-title="notif">🔔</button>
+      <button class="nc-abtn nc-abtn-radar" onclick="openRadar('rain')" title="🛰️" data-i18n-title="radar_btn">🛰️</button>
     </div>
-    <div id="loc-res" class="loc-res" style="display:none"></div>
-  </div>
-  <div class="hdr-r">
-    <div id="upd"></div>
-    <div id="cdown"></div>
-    <div id="flash"></div>
-    <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;justify-content:flex-end">
-      <button class="btn" id="btn-now" onclick="forceLoad()" data-i18n="refresh">↺ Actualizează</button>
-      <button class="btn" id="btn-notif" onclick="requestNotif()" style="background:#065f46" data-i18n="notif">🔔 Notificări</button>
-      <button class="btn" onclick="openRadar('rain')" data-i18n="radar_btn" style="background:#0c3654;color:#7dd3fc;border-color:rgba(59,130,246,.4)">🛰️ Radar</button>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
-      <label style="font-size:.74rem;color:#9fb3c8;font-weight:600"><span data-i18n="refresh_at">⏲ Actualizare la:</span>
-        <select id="refresh-sel" onchange="setRefreshInterval(this.value)"
-          style="background:#11202f;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 6px;font-size:.76rem;font-weight:700;margin-left:4px">
+    <!-- Sub-coloana 2: selectoare interval/limbă + autoinvățare -->
+    <div class="nc-col">
+      <label class="nc-sel-wrap" data-i18n-title="refresh_at">
+        <span class="nc-sel-ico">⏱</span>
+        <select id="refresh-sel" onchange="setRefreshInterval(this.value)">
           <option value="15">15 min</option><option value="30">30 min</option>
           <option value="45">45 min</option><option value="60">1 h</option>
-          <option value="75">1 h 15</option><option value="90">1 h 30</option>
-          <option value="105">1 h 45</option><option value="120">2 h</option>
-          <option value="135">2 h 15</option><option value="150">2 h 30</option>
-          <option value="165">2 h 45</option><option value="180">3 h</option>
+          <option value="75">1h15</option><option value="90">1h30</option>
+          <option value="105">1h45</option><option value="120">2 h</option>
+          <option value="135">2h15</option><option value="150">2h30</option>
+          <option value="165">2h45</option><option value="180">3 h</option>
         </select>
       </label>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
-      <label style="font-size:.74rem;color:#9fb3c8;font-weight:600"><span data-i18n="lang_label">🌐 Limbă:</span>
-        <select id="lang-sel" onchange="setLang(this.value)"
-          style="background:#11202f;color:#cfe0f2;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 6px;font-size:.76rem;font-weight:700;margin-left:4px">
-          <option value="ro">Română</option><option value="en">English</option>
-          <option value="fr">Français</option><option value="es">Español</option>
-          <option value="de">Deutsch</option><option value="it">Italiano</option>
+      <label class="nc-sel-wrap" data-i18n-title="lang_label">
+        <span class="nc-sel-ico">🌐</span>
+        <select id="lang-sel" onchange="setLang(this.value)">
+          <option value="ro">RO</option><option value="en">EN</option>
+          <option value="fr">FR</option><option value="es">ES</option>
+          <option value="de">DE</option><option value="it">IT</option>
         </select>
       </label>
+      <div id="learn-status" class="nc-learn-mini"></div>
+      <div id="notif-status" class="nc-notif-mini"></div>
     </div>
-    <div id="notif-status" style="font-size:.7rem;color:#6ee7b7;margin-top:3px;text-align:right"></div>
-    <div id="learn-status" style="font-size:.7rem;color:#a5b4fc;margin-top:2px;text-align:right"></div>
   </div>
 </div>
 
@@ -260,6 +361,26 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
 <div id="ban-err" class="ban err" style="display:none">
   <span id="err-txt"></span>
   <button class="btn" onclick="forceLoad()" data-i18n="retry">↺ Retry</button>
+</div>
+
+<!-- ═══ NOI SECȚIUNI WEATHER DISPLAY (stil card) ═══ -->
+<div class="nw-main">
+  <div class="nw-hstrip-wrap"><div id="nw-hstrip" class="nw-hstrip"></div></div>
+  <div id="nw-days" class="nw-days"></div>
+</div>
+
+<!-- ═══ LOCBAR — după cele 7 zile ═══ -->
+<div class="nw-ctrl-section">
+  <div class="locbar">
+    <input id="loc-q" class="loc-input" type="text" placeholder="Caută altă localitate…" data-i18n-ph="loc_ph" onkeydown="locKey(event)" autocomplete="off">
+    <button class="btn" onclick="doGeoSearch()" data-i18n="search">🔍 Caută</button>
+    <button class="btn loc-fixed" id="btn-gps"     onclick="useCurrentLocation()" data-i18n="loc_search">📡 Locația curentă</button>
+    <button class="btn loc-fixed" id="btn-york"    onclick="goFixed('york')">🇬🇧 York UK</button>
+    <button class="btn loc-fixed" id="btn-craiova" onclick="goFixed('craiova')">🏙 Craiova</button>
+    <button class="btn loc-fixed active" id="btn-daneti"  onclick="goFixed('daneti')">🏠 Daneti</button>
+    <button class="btn loc-fixed" id="btn-raieti"  onclick="goFixed('raieti')">🏡 Raieti</button>
+  </div>
+  <div id="loc-res" class="loc-res" style="display:none"></div>
 </div>
 
 <!-- PRAGURI AJUSTABILE -->
@@ -287,8 +408,8 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   <span class="thr-hint" id="thr-note">probabilități recalculate din ensemble</span>
 </div>
 
-<!-- AZI / MAINE -->
-<div class="sgrid">
+<!-- AZI / MAINE (ascunse — date păstrate intern) -->
+<div class="sgrid" style="display:none">
   <div class="card" id="card-azi">
     <div class="card-hdr"><span class="day-lbl" id="lbl-azi" data-i18n="today_section">Astăzi</span><span class="date-lbl" id="dt-azi">—</span></div>
     <div id="body-azi" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
@@ -299,8 +420,8 @@ code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;font-fami
   </div>
 </div>
 
-<!-- 7 ZILE -->
-<div class="sec">
+<!-- 7 ZILE (tabel vechi ascuns — înlocuit de nw-days) -->
+<div class="sec" style="display:none">
   <div class="sec-title" data-i18n="week7">📅 Prognoză 7 zile (de azi)</div>
   <div id="wk-body" style="color:#5a7390;font-size:.9rem">'+t('loading')+'</div>
 </div>
@@ -1670,40 +1791,14 @@ function renderOfficialWarnings(){
 
   // Fără avertizări locale → notă mică DOAR pt cazuri speciale, altfel ascuns
   if(!_owCache.length){
-    if(_owStatus==='non-europe'){
-      box.style.display='flex';
-      box.innerHTML=`<div class="ow-note">${t('ow_non_europe')}</div>`;
-      return;
-    }
-    if(_owStatus==='country-only' && _owCountryWide>0){
-      box.style.display='flex';
-      box.innerHTML=`<div class="ow-note">ℹ️ ${_owCountryWide} ${t('ow_country_only')}</div>`;
-      return;
-    }
-    if(_owStatus==='other-regions' && _owAllCount>0){
-      box.style.display='flex';
-      box.innerHTML=`<div class="ow-note">✅ ${_owAllCount} ${t('ow_other_regions')}</div>`;
-      return;
-    }
-    if(_owStatus==='proxy-fail'){
-      box.style.display='flex';
-      box.innerHTML=`<div class="ow-note">${t('ow_proxy_fail')} (${esc(_owErrDetail||'rețea')})${t('ow_retry')}</div>`;
-      return;
-    }
-    box.style.display='none'; box.innerHTML=''; return;
+    // Fără alerte locale → ascundem tot (nu mai afișăm mesaje ca "18 avertizări în țară")
+    box.style.display='none';box.innerHTML='';
+    const mw=el('nc-mini-warns');if(mw)mw.innerHTML='';
+    return;
   }
 
-  // ── Avertizări: DOAR iconițe compacte; click pe iconiță → expandează textul ANM complet ──
-  box.style.display='flex';
-  const chips=_owCache.map((w,idx)=>{
-    const L=owLevelClass(w.level);
-    const typeNm=getOWTypeName(w.type);
-    const eticheta=typeNm||L.nm||'Avertizare';
-    return `<button class="ow-chip ${L.cls}" onclick="owToggle(${idx})" title="${t('ow_chip_title')}">`+
-      `<span class="ow-chip-ico">${L.ic}</span><span class="ow-chip-lbl">${esc(eticheta)}</span>`+
-      `<span class="ow-chip-caret" id="ow-caret-${idx}">▸</span></button>`;
-  }).join('');
-
+  // ── Avertizări: NUMAI panourile de detalii (fără butoane/chips la top)
+  // Panourile sunt ascunse implicit; se deschid via mini-triunghiurile ▲ din sumar
   const panels=_owCache.map((w,idx)=>{
     const L=owLevelClass(w.level);
     const typeNm=getOWTypeName(w.type);
@@ -1712,23 +1807,26 @@ function renderOfficialWarnings(){
       w.effective?t('ow_from')+' '+fmtDtShort(w.effective):'',
       w.expires?t('ow_until')+' '+fmtDtShort(w.expires):'',
     ].filter(Boolean).join(' ');
-    // Construiește textul descriptiv în română (se va traduce async la click dacă LANG≠'ro')
     const bodyText=(w.desc&&!/awareness/i.test(w.desc)?w.desc:'')||[
       w.headline&&w.headline!==w.event?w.headline:'',
       w.area?t('ow_areas')+': '+w.area:'',
       perioada?t('ow_interval')+': '+perioada:'',
     ].filter(Boolean).join('\n')||t('ow_no_detail');
-    // Stocare text original pentru traducere lazy
     _owPanelTexts.set(idx,{body:bodyText,translated:false});
     return `<div class="ow-panel ${L.cls}" id="ow-full-${idx}">`+
-      `<div class="ow-panel-head">${L.ic} <b>${esc(titlu)}</b></div>`+
+      `<div class="ow-panel-head"><span>${L.ic} <b>${esc(titlu)}</b></span>`+
+      `<button class="ow-close-x" onclick="owClose()" title="${t('radar_close')}">✕</button></div>`+
       (w.area?`<div class="ow-meta">📍 ${esc(w.area)}</div>`:'')+
       (perioada?`<div class="ow-meta">🕒 ${perioada}</div>`:'')+
       `<div class="ow-panel-body" id="ow-body-${idx}">${esc(bodyText)}</div>`+
     `</div>`;
   }).join('');
 
-  box.innerHTML=`<div class="ow-chips">${chips}</div>${panels}`;
+  // offwarn ascuns implicit — se arată numai când un panou e deschis (via owToggle)
+  box.innerHTML=panels;
+  box.style.display='none';
+  // Actualizează triunghiurile mini din sumarul principal
+  const mw=el('nc-mini-warns');if(mw)mw.innerHTML=buildMiniWarns();
 }
 
 // ── Traducere automată a textului de avertizare (lazy, la deschidere panel) ──
@@ -1767,17 +1865,74 @@ async function translateOWPanel(idx){
   bodyEl.style.opacity='';
 }
 
+function owClose(){
+  const box=el('offwarn');if(!box)return;
+  box.querySelectorAll('.ow-panel.open').forEach(p=>p.classList.remove('open'));
+  box.style.display='none';
+}
+
 function owToggle(idx){
+  const box=el('offwarn');
   const f=el('ow-full-'+idx);if(!f)return;
-  f.classList.toggle('open');
-  const caret=el('ow-caret-'+idx);
-  if(caret)caret.textContent=f.classList.contains('open')?'▾':'▸';
-  // Traduce lazy când panelul se deschide și limba nu e română
-  if(f.classList.contains('open')&&LANG!=='ro')translateOWPanel(idx);
+  const wasOpen=f.classList.contains('open');
+  // Închide toate panourile
+  if(box)box.querySelectorAll('.ow-panel.open').forEach(p=>p.classList.remove('open'));
+  if(!wasOpen){
+    // Deschide panoul selectat și arată offwarn
+    f.classList.add('open');
+    if(box)box.style.display='flex';
+    if(LANG!=='ro')translateOWPanel(idx);
+  } else {
+    // Era deschis → toggle îl închide → ascunde offwarn
+    if(box)box.style.display='none';
+  }
   if(typeof positionRefreshBtn==='function')positionRefreshBtn();
 }
 // escape minimal pt text din surse externe
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// Calculează intervalele orare cu vânt ≥ WIND_MIN sau ploaie ≥ RAIN_MIN în următoarele 24h.
+// Returnează: [{type:'wind'|'rain', val:number, from:'HH:00', to:'HH:00', dk}]
+// Apare NUMAI când există ore care depășesc pragul — alertă compactă fără false positive.
+function getWeatherIntervals(hours){
+  const dk0=dkNow(),h0=hNow();
+  const fut=hours.filter(h=>h.dk>dk0||(h.dk===dk0&&h.h>=h0)).slice(0,24);
+  const out=[];
+  // Vânt
+  let i=0;
+  while(i<fut.length){
+    if((fut[i].wMean||0)>=WIND_MIN){
+      let j=i,mx=0;
+      while(j<fut.length&&(fut[j].wMean||0)>=WIND_MIN){mx=Math.max(mx,fut[j].wMean||0);j++;}
+      const endH=fut[j-1].h+1;
+      out.push({type:'wind',val:Math.round(mx),from:fH(fut[i].h),to:endH>=24?'00:00':fH(endH),dk:fut[i].dk});
+      i=j;
+    } else i++;
+  }
+  // Ploaie
+  i=0;
+  while(i<fut.length){
+    if((fut[i].pMean||0)>=RAIN_MIN){
+      let j=i,mx=0;
+      while(j<fut.length&&(fut[j].pMean||0)>=RAIN_MIN){mx=Math.max(mx,fut[j].pMean||0);j++;}
+      const endH=fut[j-1].h+1;
+      out.push({type:'rain',val:Math.round(mx*10)/10,from:fH(fut[i].h),to:endH>=24?'00:00':fH(endH),dk:fut[i].dk});
+      i=j;
+    } else i++;
+  }
+  return out;
+}
+
+// Triunghiuri mini-avertizare ANM pentru sumar (▲ galben/portocaliu/roșu, fără text)
+function buildMiniWarns(){
+  if(!_owCache||!_owCache.length)return'';
+  const CLR={'2':'#facc15','3':'#fb923c','4':'#ef4444'};
+  return _owCache.map((w,idx)=>{
+    const clr=CLR[w.level]||'#facc15';
+    const tip=esc(w.headline||w.event||t('ow_warning'));
+    return `<span class="nc-mtri" onclick="owToggle(${idx})" title="${tip}" style="color:${clr}" role="button" aria-label="${tip}">▲</span>`;
+  }).join('');
+}
 
 function renderNowcast(hours,cur){
   const box=el('nowcast');if(!box)return;
@@ -1797,27 +1952,35 @@ function renderNowcast(hours,cur){
   const w1=h1.wMean||0, w2=Math.max(...two.map(h=>h.wMean||0));
   const wp1=h1.windProb||0, wp2=Math.max(...two.map(h=>h.windProb||0));
   const pl=precipLabel(h1);
-  const hi=v=>v>=P_HIGH?'nc-hi':'';
   const L=[];
-  // caniculă (vara) / ger (iarna) — privire înainte pe restul zilei de azi
+  // caniculă / ger
   const warmNow=(dMon(dk0)>=4&&dMon(dk0)<=9);
   const cross=tempCross(hours.filter(h=>h.dk===dk0&&h.h>=h0),warmNow);
   if(cross){
     if(warmNow)L.push(`<span style="color:#fb7185;font-weight:800">${t('heat_between')} ${cross.ivs.join(', ')} · ${cross.extreme}°C</span>`);
     else       L.push(`<span style="color:#7dd3fc;font-weight:800">${t('frost_between')} ${cross.ivs.join(', ')} · ${cross.extreme}°C</span>`);
   }
-  // linia de ploaie — doar dacă există șanse (≠0)
-  if(Math.max(rp1,rp2)>0){
-    L.push(`<span>${pl.i} ${pl.t}: <b>${nr1(p1)} l/mp</b> · <b class="${hi(rp1)}">${rp1}%</b> ${t('chance_1h')} `+
-      `<span class="sep" style="color:#5a7390">/</span> <b>${nr1(p2)} l/mp</b> · <b class="${hi(rp2)}">${rp2}%</b> ${t('chance_2h')}</span>`);
-  }
-  // linia de vânt — doar dacă există șanse (≠0)
-  if(Math.max(wp1,wp2)>0){
-    L.push(`<span>${t('wind_label')}: <b>${Math.round(w1)} km/h</b> · <b class="${hi(wp1)}">${wp1}%</b> ${t('chance_1h')} `+
-      `<span class="sep" style="color:#5a7390">/</span> <b>${Math.round(w2)} km/h</b> · <b class="${hi(wp2)}">${wp2}%</b> ${t('chance_2h')}</span>`);
-  }
+  // NOU: alerte compacte Vânt Xkm/h între HH:00–HH:00 / Ploaie Xl/mp între HH:00–HH:00
+  const weatherIvs=getWeatherIntervals(hours);
+  weatherIvs.forEach(iv=>{
+    if(iv.type==='wind'){
+      L.push(`<span>💨 <b>${t('alert_wind')} ${iv.val} km/h</b> ${t('alert_between')} <b>${iv.from}–${iv.to}</b></span>`);
+    } else {
+      const vStr=(Math.round(iv.val*10)/10).toFixed(1).replace('.',',');
+      L.push(`<span>🌧 <b>${t('alert_rain')} ${vStr} ${t('unit_lmp')}</b> ${t('alert_between')} <b>${iv.from}–${iv.to}</b></span>`);
+    }
+  });
   if(!L.length)L.push(`<span style="color:#8aa0b8">${t('no_chances')}</span>`);
-  // Următoarea ploaie susținută (>10 l/mp, >1 oră) căutată în următoarele 14 zile — vizibilă doar dacă există
+  // ── Header: locație + altitudine + ceas ──
+  const locShort=(LOC_NAME||'').split(',')[0].trim()||'—';
+  const elevVal=ELEV_OVERRIDE!=null?ELEV_OVERRIDE:(_resolvedElev!=null?Math.round(_resolvedElev):null);
+  const elevHtml=elevVal!=null?` <span class="nc-loc-elev">· ${t('altitude')} ${elevVal}m</span>`:'';
+  const timeNow=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+  const headerHtml=`<div class="nc-header-row">`+
+    `<div class="nc-loc-alt"><span class="nc-loc-name">📍 ${esc(locShort)}</span>${elevHtml}</div>`+
+    `<span class="nc-clock-big">🕐 ${timeNow}</span>`+
+    `</div>`;
+  // Eveniment ploaie >10 l/mp în orizontul prognozat (vizibil dacă există)
   const nre=nextRainEvent(hours);
   let nreHtml='';
   if(nre){
@@ -1825,9 +1988,14 @@ function renderNowcast(hours,cur){
       `${roDateLong(nre.dk)} · <b>${(Math.round(nre.total*10)/10).toFixed(1).replace('.',',')} l/mp</b> · ${t('at_hour')} ${nre.from}–${nre.to}</div>`;
   }
   box.innerHTML=
+    headerHtml+
     `<div class="nc-main"><span class="nc-ico">${cond.i}</span>`+
     `<span>${tCur!=null?tCur+'°C':'—'}</span>`+
-    `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}</span></div>`+
+    `<span class="nc-cond">· ${t('feels_label')} ${at!=null?at+'°':'—'}${maxToday!=null?' · <b>'+t('week_max')+' '+maxToday+'°</b>':''} · ${cond.t}`+
+    (cur.pMean!=null?` <span class="nc-iv">🌧 <b>${(Math.round(cur.pMean*10)/10).toFixed(1)} ${t('unit_lmp')}</b></span>`:'')+
+    (cur.wMean!=null?` <span class="nc-iv">💨 <b>${Math.round(cur.wMean)} km/h</b></span>`:'')+
+    `<span id="nc-mini-warns" class="nc-mini-warns">${buildMiniWarns()}</span>`+
+    `</span></div>`+
     nreHtml+
     `<div class="nc-sub">${L.join('')}</div>`+
     buildRelProbHtml();
@@ -2018,7 +2186,7 @@ const I18N={
     src_inactive_hint:'sursă inactivă (fără date la locație)',
     src_description:'12 modele deterministe (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 modele ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) pentru azi+mâine · probabilitatea de ploaie/vânt vine din membrii ensemble · butonul ⭐ Best alege automat un set optimizat statistic per locație · actualizare automată din 15 în 15 minute',
     ow_areas:'Zone vizate',ow_interval:'Interval',ow_from:'de la',ow_until:'până la',
-    ow_no_detail:'(fără detalii disponibile — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',},
+    ow_no_detail:'(fără detalii disponibile — verificați meteoromania.ro)',ow_translating:'⏳ Se traduce…',unit_lmp:'l/mp',alert_wind:'Vânt',alert_rain:'Ploaie',alert_between:'între',altitude:'Alt.',},
   en:{
     lang_name:'English',
     search:'🔍 Search',search_ph:'Search location (city, village)…',
@@ -2113,7 +2281,7 @@ const I18N={
     src_inactive_hint:'inactive source (no data for location)',
     src_description:'12 deterministic models (incl. ECMWF IFS 9km, ECMWF AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE models 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) for today+tomorrow · rain/wind probability from ensemble members · ⭐ Best auto-selects a statistically optimized set per location · auto-refresh every 15 minutes',
     ow_areas:'Areas affected',ow_interval:'Period',ow_from:'from',ow_until:'until',
-    ow_no_detail:'(no details available — check meteoromania.ro)',ow_translating:'⏳ Translating…',},
+    ow_no_detail:'(no details available — check meteoromania.ro)',ow_translating:'⏳ Translating…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Rain',alert_between:'between',altitude:'Alt.',},
   fr:{
     lang_name:'Français',
     search:'🔍 Chercher',search_ph:'Chercher un lieu (ville, village)\u2026',
@@ -2208,7 +2376,7 @@ const I18N={
     src_inactive_hint:'source inactive (pas de données pour ce lieu)',
     src_description:"12 modèles déterministes (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modèles ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pluie/vent depuis l'ensemble · ⭐ Best sélectionne automatiquement un ensemble optimisé · actualisation auto toutes les 15 minutes",
     ow_areas:'Zones concernées',ow_interval:'Période',ow_from:'de',ow_until:"jusqu'à",
-    ow_no_detail:'(aucun détail disponible — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',},
+    ow_no_detail:'(aucun détail disponible — consultez meteoromania.ro)',ow_translating:'⏳ Traduction…',unit_lmp:'l/m²',alert_wind:'Vent',alert_rain:'Pluie',alert_between:'entre',altitude:'Alt.',},
   es:{
     lang_name:'Español',
     search:'🔍 Buscar',search_ph:'Buscar lugar (ciudad, pueblo)\u2026',
@@ -2303,7 +2471,7 @@ const I18N={
     src_inactive_hint:'fuente inactiva (sin datos para esta ubicación)',
     src_description:'12 modelos deterministas (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelos ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. lluvia/viento desde ensemble · ⭐ Best selecciona automáticamente un conjunto optimizado · actualización automática cada 15 minutos',
     ow_areas:'Zonas afectadas',ow_interval:'Período',ow_from:'desde',ow_until:'hasta',
-    ow_no_detail:'(sin detalles disponibles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',},
+    ow_no_detail:'(sin detalles disponibles — consulta meteoromania.ro)',ow_translating:'⏳ Traduciendo…',unit_lmp:'l/m²',alert_wind:'Viento',alert_rain:'Lluvia',alert_between:'entre',altitude:'Alt.',},
   de:{
     lang_name:'Deutsch',
     search:'🔍 Suchen',search_ph:'Ort suchen (Stadt, Dorf)\u2026',
@@ -2398,7 +2566,7 @@ const I18N={
     src_inactive_hint:'inaktive Quelle (keine Daten für diesen Ort)',
     src_description:'12 deterministische Modelle (inkl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 ENSEMBLE-Modelle 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · Regen/Wind-Wahrscheinlichkeit aus Ensemble · ⭐ Best wählt automatisch ein statistisch optimiertes Set · Auto-Aktualisierung alle 15 Minuten',
     ow_areas:'Betroffene Gebiete',ow_interval:'Zeitraum',ow_from:'von',ow_until:'bis',
-    ow_no_detail:'(keine Details verfügbar — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',},
+    ow_no_detail:'(keine Details verfügbar — besuche meteoromania.ro)',ow_translating:'⏳ Übersetze…',unit_lmp:'l/m²',alert_wind:'Wind',alert_rain:'Regen',alert_between:'zwischen',altitude:'Alt.',},
   it:{
     lang_name:'Italiano',
     search:'🔍 Cerca',search_ph:'Cerca località (città, paese)\u2026',
@@ -2493,7 +2661,7 @@ const I18N={
     src_inactive_hint:'sorgente inattiva (nessun dato per questa posizione)',
     src_description:'12 modelli deterministici (incl. ECMWF IFS 9km, AIFS, ARPEGE) + MET Norway + 2 modelli ENSEMBLE 🎯 (ECMWF ENS 51 {members}, ICON-EU EPS 40 {members}) · prob. pioggia/vento dall\'ensemble · ⭐ Best seleziona automaticamente un set ottimizzato · aggiornamento automatico ogni 15 minuti',
     ow_areas:'Zone interessate',ow_interval:'Periodo',ow_from:'dalle',ow_until:'alle',
-    ow_no_detail:'(nessun dettaglio disponibile — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',},
+    ow_no_detail:'(nessun dettaglio disponibile — visita meteoromania.ro)',ow_translating:'⏳ Traduzione…',unit_lmp:'l/m²',alert_wind:'Vento',alert_rain:'Pioggia',alert_between:'tra',altitude:'Alt.',},
 };
 const LANG_KEY='meteo_lang';
 // Arrays zile/luni localizate — obiect separat (fara eval, sintaxa curata)
@@ -2615,6 +2783,146 @@ window.addEventListener('storage',e=>{
 });
 
 // ── Render 7 zile ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// NOI FUNCȚII RENDERING — card sumar + strip 5 ore + 7 zile stil card
+// ═══════════════════════════════════════════════════════════════
+
+function renderNWCard(hours, cur){
+  const card=el('nw-card'); if(!card)return;
+  if(!cur){card.innerHTML='';return;}
+  const cond=condIcon(cur);
+  const tC=cur.tMean!=null?Math.round(cur.tMean):null;
+  const at=cur.atMean!=null?Math.round(cur.atMean):tC;
+  const dp=cur.dpMean!=null?Math.round(cur.dpMean):null;
+  const cloud=cur.cloudMean!=null?Math.round(cur.cloudMean):null;
+  const w=cur.wMean!=null?Math.round(cur.wMean):null;
+  const p=cur.pMean;
+  const wD=cur.wDir;
+  const rP=cur.rainProb;
+  const uvi=cur.uvi!=null?Math.round(cur.uvi):null;
+  const st=dayStats(hours,dkNow());
+  // Orar actual
+  const now=new Date();
+  const updStr=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+
+  card.innerHTML=
+    `<div class="nw-top">
+      <div class="nw-left">
+        <div class="nw-temprow">
+          <span class="nw-bigico">${cond.i}</span>
+          <span class="nw-bigtemp">${tC!=null?tC+'°':'—'}</span>
+        </div>
+        <div class="nw-condrow">${cond.t}${uvi!=null?' · UV '+uvi:''}${at!=null?' · '+t('feels_label')+' '+at+'°':''}</div>
+      </div>
+      <div class="nw-right">
+        ${st?.tmax!=null?`<div class="nw-maxmin"><span class="nw-tmax">▲${st.tmax}°</span><br><span class="nw-tmin">▼${st?.tmin!=null?st.tmin+'°':'—'}</span></div>`:''}
+      </div>
+    </div>
+    <div class="nw-grid">
+      ${w!=null?`<div class="nw-gi">💨 <span class="nw-gv">${w} km/h ${windArrow(wD)||''}</span></div>`:''}
+      ${p!=null?`<div class="nw-gi">🌧 <span class="nw-gv">${p} l/mp</span>${rP?' <small style="color:#475569">('+rP+'%)</small>':''}</div>`:''}
+      ${cloud!=null?`<div class="nw-gi">☁ <span class="nw-gv">${cloud}%</span></div>`:''}
+      ${dp!=null?`<div class="nw-gi">🌫 <span class="nw-gv">${dp}°</span></div>`:''}
+    </div>
+    ${buildRelProbHtml()}
+    <div class="nw-upd">${t('updated_at')} ${updStr}</div>`;
+}
+
+function renderNWHStrip(hours){
+  const strip=el('nw-hstrip'); if(!strip)return;
+  const dk0=dkNow(),h0=hNow();
+  // 72 ore (3 zile) — scroll orizontal pentru ore suplimentare
+  const next5=hours.filter(h=>h.dk>dk0||(h.dk===dk0&&h.h>=h0)).slice(0,72);
+  // Fiabilitate din autoinvățare per orizont zi
+  const ls=typeof learnStats==='function'?learnStats():null;
+  const relPct=(dk,field)=>{
+    if(!ls||!ls.rel)return null;
+    const r=ls.rel[horizonDays(dk)];
+    if(!r||r[field]==null||(r.n||0)<5)return null;
+    return Math.round(r[field]*100);
+  };
+  const relSpan=p=>p!=null?`<span class="nw-rel">${p}%</span>`:'';
+
+  const zile=getZileScurt();
+  let prevDk='';
+  strip.innerHTML=next5.map(h=>{
+    const rain=h.pMean!=null?h.pMean:0;
+    const wind=h.wMean!=null?h.wMean:0;
+    const temp=h.tMean!=null?Math.round(h.tMean):null;
+    const isNow=h.isNow;
+    const tR=relPct(h.dk,'t'), pR=relPct(h.dk,'p'), wR=relPct(h.dk,'w');
+    const wDir=h.wDir!=null?(windArrow(h.wDir)||''):'';
+    const wCrd=h.wDir!=null?(windCard(h.wDir)||''):'';
+    const rainRow=rain>0.1?
+      `<div class="nw-hline"><span class="nw-hval r">🌧 ${(Math.round(rain*10)/10).toFixed(1)}l</span>${relSpan(pR)}</div>`:'';
+    const windRow=wind>0.1?
+      `<div class="nw-hline"><span class="nw-hval w">💨 ${Math.round(wind)}km ${wDir}${wCrd}</span>${relSpan(wR)}</div>`:'';
+    // Separator zi (prima oră din ziua nouă)
+    let daySep='';
+    if(h.dk!==prevDk&&prevDk!==''){
+      const dayName=zile[dow(h.dk)];
+      daySep=`<div class="nw-daysep" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:28px;writing-mode:vertical-lr;font-size:.6rem;font-weight:800;color:#3b82f6;background:rgba(37,99,235,.12);border-radius:6px;border:1px solid rgba(59,130,246,.2)">${dayName}</div>`;
+    }
+    prevDk=h.dk;
+    return daySep+`<div class="nw-hcell${isNow?' nw-now':''}">
+      <div class="nw-hh">${isNow?'▶':fH(h.h)}</div>
+      <div class="nw-hline"><span class="nw-hval t">${temp!=null?temp+'°':'—'}</span>${relSpan(tR)}</div>
+      ${rainRow}${windRow}
+    </div>`;
+  }).join('');
+}
+
+function renderNWDays(hours){
+  const dl=el('nw-days'); if(!dl)return;
+  const days=next7days(), dk0=dkNow();
+  const zile=getZileScurt(), luni=getLuniS();
+  dl.innerHTML=days.map(dk=>{
+    const s=dayStats(hours,dk);
+    const dh=dayHours(hours,dk);
+    if(!dh.length)return'';
+    // Iconițe zi / noapte
+    const dH=dh.find(h=>h.h===12)||dh.find(h=>h.h===14)||dh[Math.floor(dh.length/2)];
+    const nH=dh.find(h=>h.h===22)||dh.find(h=>h.h===20)||dh[dh.length-1];
+    const dayIco=condIcon(dH).i, nightIco=condIcon(nH).i;
+    // Max probabilitate ploaie
+    const maxP=dh.length?Math.max(...dh.map(h=>h.rainProb||0)):0;
+    // Wind range
+    const winds=dh.map(h=>h.wMean).filter(v=>v!=null);
+    const wMin=winds.length?Math.round(Math.min(...winds)):0;
+    const wMax=s?.wmax||0;
+    const wRange=wMin<wMax?`${wMin}-${wMax}`:`${wMax}`;
+    const wAr=windArrow(s?.predDir)||'';
+    // Data
+    const name=zile[dow(dk)];
+    const dateStr=`${dDay(dk)}.${String(dMon(dk)).padStart(2,'0')}`;
+    const isToday=dk===dk0;
+    return `<div class="nw-day${isToday?' nw-today':''}" onclick="gotoNWDay('${dk}')" title="${t('see_hourly')}">
+      <div class="nw-dtop">
+        <div>
+          <div class="nw-dname">${name}</div>
+          <div class="nw-ddt">${dateStr}</div>
+        </div>
+        <div class="nw-dicos">
+          <div style="text-align:center">
+            <div class="nw-dico">${dayIco}</div>
+            <div class="nw-dprob">${maxP}%</div>
+          </div>
+          <div class="nw-dico">${nightIco}</div>
+        </div>
+        <div class="nw-dtemps">
+          <div class="nw-dtmax">${s?.tmax!=null?s.tmax+'°':'—'}</div>
+          <div class="nw-dtmin">${s?.tmin!=null?s.tmin+'°':'—'}</div>
+        </div>
+      </div>
+      <div class="nw-dbot">
+        <span>→ <span class="nw-dv">${wRange} km/h</span> ${wAr}</span>
+        <span>💧 <span class="nw-dv">${s?.totP!=null?s.totP+' l':'—'}</span></span>
+        ${s?.dpAvg!=null?`<span>🌫 <span class="nw-dv">${s.dpAvg}°</span></span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderWeek(hours){
   const days=next7days();
   const stats=days.map(dk=>dayStats(hours,dk));
@@ -2909,10 +3217,13 @@ function applyResults(results){
 
   renderDayCard('body-azi',dkNow(),hours,cur);
   renderDayCard('body-maine',dkTomr(),hours,refMaine);
-  renderOfficialWarnings();      // afișează imediat avertizările deja în cache (rămân vizibile)
+  renderOfficialWarnings();
   renderNowcast(hours,cur);
   renderWeek(hours);
   renderHourly(hours);
+  // Noile secțiuni (strip 5 ore + 7 zile stil card)
+  renderNWHStrip(hours);
+  renderNWDays(hours);
   checkNotifications(hours);
   fetchOfficialWarnings();       // reîmprospătează din Meteoalarm (asincron, nu blochează randarea)
 
@@ -2954,6 +3265,25 @@ function toggleHourly(){
   b.textContent=open?t('hide_hourly'):t('show_hourly');
 }
 // Click pe o zi din prognoza 7 zile → deschide tabelul orar și sare la ziua respectivă
+// Clic pe card zi nouă → deschide tabelul orar și sare la ziua/ora respectivă
+// Ziua curentă: sare la ora curentă (nu la ora 0)
+function gotoNWDay(dk){
+  const e=el('htbl'),b=el('tog-h');
+  if(e&&e.style.display==='none'){e.style.display='';if(b)b.textContent=t('hide_hourly');}
+  setTimeout(()=>{
+    const isToday=dk===dkNow();
+    let target=null;
+    if(isToday){
+      // Sare la rândul cu ora curentă (marcat cu now-row-hl)
+      target=document.querySelector('#htbl .now-row-hl');
+    }
+    if(!target) target=el('hday-'+dk);
+    if(target){
+      target.scrollIntoView({behavior:'smooth',block:'start'});
+      if(!isToday&&target.classList){target.classList.remove('day-flash');void target.offsetWidth;target.classList.add('day-flash');}
+    }else if(e){e.scrollIntoView({behavior:'smooth',block:'start'});}
+  },80);
+}
 function gotoHourlyDay(dk){
   const e=el('htbl'),b=el('tog-h');
   if(e.style.display==='none'){            // deschide tabelul orar dacă e ascuns
