@@ -1232,11 +1232,11 @@ function condIcon(h){
     return{i:'🌧',t:t('cond_rain')};
   }
 
-  // Probabilitate ploaie ridicata (ensemble)
+  // Probabilitate ploaie ridicata din ensemble
   if(rp>=70)return{i:'🌧',t:t('cond_rain')};
   if(rp>=40)return{i:'🌦',t:t('cond_drizzle')};
 
-  // Nori disponibili
+  // Nori disponibili (mai granular)
   if(c!=null){
     if(c<15) return{i:'☀',t:t('cond_clear')};
     if(c<35) return{i:'🌤',t:t('cond_mostly_clear')};
@@ -1245,7 +1245,7 @@ function condIcon(h){
     return{i:'☁',t:t('cond_overcast')};
   }
 
-  // Fallback cand cloudMean e null: estimare din spread temp-roua
+  // Fallback cand cloudMean e null: spread temperatura-roua
   if(dp!=null&&tc!=null){
     const spread=tc-dp;
     if(spread<4)  return{i:'☁',t:t('cond_overcast')};
@@ -2054,8 +2054,7 @@ function renderNowcast(hours,cur){
   const timeNow=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
   const topEl=el('nc-top');
   if(topEl)topEl.innerHTML=
-    `<div class="nc-loc-alt"><span class="nc-loc-name">📍 ${esc(locShort)}</span>${elevHtml}</div>`+
-    `<span class="nc-clock-big">🕐 ${timeNow}</span>`;
+    `<div class="nc-loc-alt"><span class="nc-loc-name">📍 ${esc(locShort)}</span>${elevHtml}<span class="nc-clock-big">${timeNow}</span></div>`;
 
   // Actualizează și butoanele compacte de locație din card (active state)
   ['daneti','craiova','york','raieti','gps'].forEach(loc=>{
@@ -3976,8 +3975,8 @@ function updateSummaryWithNowcast(){
 
   const{heavySoon,maxPrecip,maxProb,currentPrecip,currentTemp,rainSoon}=_nowcastOverride;
 
-  // 0) Actualizează temperatura afișată dacă nowcast15 diferă de NWP cu ≥1°C
-  //    (se aplică ÎNTOTDEAUNA, independent de ploaie — nowcast15 e mai recent și mai precis)
+  // 0) Temperatura din nowcast15 suprascrie sumarul dacă diferă cu ≥1°C față de NWP
+  //    (se aplică ÎNTOTDEAUNA, independent de ploaie — nowcast15 e mai recent)
   if(currentTemp!=null){
     const ncMain=nc.querySelector('.nc-main');
     if(ncMain){
@@ -3989,7 +3988,7 @@ function updateSummaryWithNowcast(){
         if(Math.abs(now15T-nwpT)>=1){
           if(!tSpan.dataset.ncOrigT)tSpan.dataset.ncOrigT=tSpan.textContent;
           tSpan.textContent=now15T+'°C';
-          tSpan.style.color='#38bdf8';  // albastru deschis = valoare nowcasting
+          tSpan.style.color='#38bdf8';
           tSpan.title='⚡ Nowcasting 15 min (radar+satelit) — mai recent decât prognoza NWP';
         }
       }
@@ -4049,7 +4048,7 @@ function tickClock(){
     const ec=el('clock');if(ec)ec.textContent=t2;
     // Actualizează ceasul vizibil din nc-top (dacă există)
     const nct=el('nc-top');
-    if(nct){const ck=nct.querySelector('.nc-clock-big');if(ck)ck.textContent='🕐 '+t2;}
+    if(nct){const ck=nct.querySelector('.nc-clock-big');if(ck)ck.textContent=t2;}
   }catch(e){}
 }
 tickClock();setInterval(tickClock,1000);
