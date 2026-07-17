@@ -2090,6 +2090,8 @@ function renderNowcast(hours,cur){
     nreHtml+
     `<div class="nc-sub">${L.join('')}</div>`+
     buildRelProbHtml();
+  // Re-aplică override nowcast15 după re-randare (datele nowcast pot fi mai recente decât NWP)
+  if(typeof updateSummaryWithNowcast==='function')updateSummaryWithNowcast();
 }
 
 
@@ -3910,16 +3912,19 @@ async function fetchNowcast15(){
 function renderNow15Strip(m15){
   const bar=el('now15-bar');if(!bar||!m15||!m15.time)return;
   const now=Date.now();
-  const items=m15.time.map((ts,i)=>({
+  const allItems=m15.time.map((ts,i)=>({
     ts:new Date(ts.replace('T',' ')+':00').getTime(),
     timeStr:ts.split('T')[1]||ts.slice(-5),
     precip:m15.precipitation?.[i]??0,
     prob:m15.precipitation_probability?.[i]??0,
     temp:m15.temperature_2m?.[i]??null,
-  })).filter(it=>it.ts>now)  // start de la URMATORUL interval 15 min;
+  }));
+  // currentItem = ultimul interval 15min care a început deja (temperatura reală prezentă)
+  const pastItems=allItems.filter(it=>it.ts<=now);
+  const currentItem=pastItems.length?pastItems[pastItems.length-1]:allItems[0]||null;
+  // items pt strip = intervalele viitoare
+  const items=allItems.filter(it=>it.ts>now);
   if(!items.length){bar.style.display='none';return;}
-
-  const currentItem=items[0]||null;
   const curPrecip=currentItem?.precip??0;
   const soon15Precip=(items[1]?.precip??0);
   const soon30Precip=Math.max(...items.slice(0,3).map(it=>it.precip));
@@ -3997,19 +4002,16 @@ function updateSummaryWithNowcast(){
   // 0) Temperatura din nowcast15 suprascrie sumarul dacă diferă cu ≥1°C față de NWP
   //    (se aplică ÎNTOTDEAUNA, independent de ploaie — nowcast15 e mai recent)
   if(currentTemp!=null){
-    const ncMain=nc.querySelector('.nc-main');
-    if(ncMain){
-      const spans=[...ncMain.querySelectorAll('span')];
-      const tSpan=spans.find(s=>s.textContent.match(/^-?\d+°C$/));
-      if(tSpan){
-        const nwpT=parseInt(tSpan.textContent);
-        const now15T=Math.round(currentTemp);
-        if(Math.abs(now15T-nwpT)>=1){
-          if(!tSpan.dataset.ncOrigT)tSpan.dataset.ncOrigT=tSpan.textContent;
-          tSpan.textContent=now15T+'°C';
-          tSpan.style.color='#38bdf8';
-          tSpan.title='⚡ Nowcasting 15 min (radar+satelit) — mai recent decât prognoza NWP';
-        }
+    const tSpan=nc.querySelector('.nc-temp-big');
+    if(tSpan){
+      const raw=tSpan.textContent.replace('°','').trim();
+      const nwpT=parseInt(raw);
+      const now15T=Math.round(currentTemp);
+      if(!isNaN(nwpT)&&Math.abs(now15T-nwpT)>=1){
+        if(!tSpan.dataset.ncOrigT)tSpan.dataset.ncOrigT=tSpan.textContent;
+        tSpan.textContent=now15T+'°';
+        tSpan.style.color='#38bdf8';
+        tSpan.title='⚡ Nowcasting 15 min (radar+satelit) — mai recent decât prognoza NWP';
       }
     }
   }
